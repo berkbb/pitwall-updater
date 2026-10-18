@@ -6,4 +6,4 @@ Pitwall Updater is an independent, unofficial open-source utility for Android TV
 
 The software does not host, distribute, or stream copyrighted audio or video, or proprietary application binaries. Installation operations interact with user-authorized, publicly accessible packages using standard Android APIs.
 
-This notice is informational and does not modify the terms of the MIT License in `LICENSE`.
+This notice is informational and does not modify the terms of the GNU General Public License v3.0 in `LICENSE`.

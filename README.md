@@ -162,7 +162,7 @@ adb install -r app/build/outputs/apk/release/pitwall-updater-v1.0.4-release.apk
 
 ## 📄 License & Legal Disclaimers
 
-This project is open-source software licensed under the **[MIT License](LICENSE)**.
+This project is open-source software licensed under the **[GNU General Public License v3.0 (GPL-3.0)](LICENSE)**.
 
 ### ⚖️ Trademark & Non-Affiliation Notice
 - **Formula 1, F1, FORMULA ONE, F1 TV**, and related marks, logos, and emblems are registered trademarks of **Formula One Licensing B.V.**, a Formula 1 company.
