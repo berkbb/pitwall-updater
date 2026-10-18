@@ -9,9 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.0.5] - 2026-10-18
+
 ### Changed
 - **License Migration to GPL-3.0:** Migrated repository license from MIT to GNU General Public License v3.0 (GPL-3.0) to ensure derivative works remain open-source and protect against closed-source commercial forks, aligning with the licensing of AynaCast Player.
 - **Default Multi-Architecture APK Packaging:** Configured release builds to generate `universal`, `arm64` (`arm64-v8a`), `arm32` (`armeabi-v7a`), and `x64` (`x86_64`) APKs by default, removing the Android App Bundle (`.aab`) generation step from the release packager.
+- **Privacy & Path Hygiene:** Removed and untracked `local.properties` to ensure local SDK paths and usernames are never tracked in Git.
 
 ---
 
