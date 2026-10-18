@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Default Multi-Architecture APK Packaging:** Configured release builds to generate `universal`, `arm64` (`arm64-v8a`), `arm32` (`armeabi-v7a`), and `x64` (`x86_64`) APKs by default, removing the Android App Bundle (`.aab`) generation step from the release packager.
+
 ---
 
 ## [1.0.4] - 2026-10-17

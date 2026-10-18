@@ -122,9 +122,9 @@ adb devices
 ### 3. Building & Deploying
 
 ```bash
-# Assemble Release APK
+# Assemble Release APKs (universal, arm64, arm32, x64)
 ./gradlew assemble
-adb install -r app/build/outputs/apk/release/pitwall-updater-v1.0.4-release.apk
+adb install -r app/build/outputs/apk/release/pitwall-updater-v1.0.4-universal-release.apk
 ```
 
 ### 4. Remote Inspection & Headless Testing
