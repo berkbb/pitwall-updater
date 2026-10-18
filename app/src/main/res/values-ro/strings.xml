@@ -42,6 +42,10 @@
     <string name="dialog_website_url">https://berkbb.github.io</string>
     <string name="dialog_patch_label">Patch F1 TV 4K/UHD:</string>
     <string name="dialog_patch_author">Alexvbp (GitHub)</string>
+    <string name="dialog_license_label">Licență:</string>
+    <string name="dialog_license_name">Licența Publică Generală GNU v3.0</string>
+    <string name="dialog_license_title">Licența Publică Generală GNU v3.0</string>
+    <string name="btn_view_license">Vezi licența</string>
     <string name="dialog_device_label">Dispozitiv &amp; Platformă:</string>
     <string name="dialog_disclaimer">Actualizator open-source neoficial și independent pentru aplicația F1 TV. Nu este afiliat sau aprobat de Formula One Licensing B.V. sau Formula 1.</string>
     <string name="btn_language">🌐 %1$s</string>

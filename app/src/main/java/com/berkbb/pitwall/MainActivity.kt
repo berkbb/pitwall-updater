@@ -330,6 +330,8 @@ fun PitwallScreen(
 @Composable
 fun AboutWindow(onClose: () -> Unit) {
     val closeFocusRequester = remember { FocusRequester() }
+    var showLicenseDialog by remember { mutableStateOf(false) }
+
     Dialog(
         onDismissRequest = onClose,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -391,11 +393,20 @@ fun AboutWindow(onClose: () -> Unit) {
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                     InfoCard(
+                        title = stringResource(R.string.dialog_license_label).trimEnd(':'),
+                        value = stringResource(R.string.dialog_license_name),
+                        valueColor = Color(0xFF81C784),
+                        height = 112.dp,
+                        modifier = Modifier.weight(1f)
+                    )
+                    InfoCard(
                         title = stringResource(R.string.dialog_patch_label).trimEnd(':'),
                         value = stringResource(R.string.dialog_patch_author),
                         height = 112.dp,
                         modifier = Modifier.weight(1f)
                     )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                     val manufacturer = android.os.Build.MANUFACTURER.replaceFirstChar { it.uppercase() }
                     val model = android.os.Build.MODEL
                     val product = android.os.Build.PRODUCT
@@ -411,10 +422,10 @@ fun AboutWindow(onClose: () -> Unit) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Disclaimer beside the Close button
+            // Disclaimer beside the Action buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(32.dp),
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -424,6 +435,111 @@ fun AboutWindow(onClose: () -> Unit) {
                     color = TextGray,
                     modifier = Modifier.weight(1f)
                 )
+                TvActionButton(
+                    text = stringResource(R.string.btn_view_license),
+                    backgroundColor = CardDark,
+                    focusedBorderColor = Color(0xFFE0E0E0),
+                    onClick = { showLicenseDialog = true }
+                )
+                TvActionButton(
+                    text = stringResource(R.string.btn_close),
+                    backgroundColor = AccentColor,
+                    focusedBorderColor = Color(0xFFFFD700),
+                    modifier = Modifier.focusRequester(closeFocusRequester),
+                    onClick = onClose
+                )
+            }
+        }
+
+        if (showLicenseDialog) {
+            LicenseWindow(onClose = { showLicenseDialog = false })
+        }
+    }
+}
+
+/**
+ * Full-screen read-only License window displaying the GNU General Public License v3.0.
+ * Scrollable with D-pad, traps focus, and closes via Close button or Back key.
+ */
+@Composable
+fun LicenseWindow(onClose: () -> Unit) {
+    val context = LocalContext.current
+    val closeFocusRequester = remember { FocusRequester() }
+    val licenseText = remember(context) {
+        runCatching {
+            context.assets.open("LICENSE").bufferedReader().use { it.readText() }
+        }.getOrDefault("GNU General Public License v3.0\n\nhttps://www.gnu.org/licenses/gpl-3.0.txt")
+    }
+
+    Dialog(
+        onDismissRequest = onClose,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        LaunchedEffect(Unit) {
+            runCatching { closeFocusRequester.requestFocus() }
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(BackgroundDark)
+                .padding(48.dp)
+        ) {
+            // Title bar
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .width(6.dp)
+                        .height(32.dp)
+                        .background(AccentColor, RoundedCornerShape(3.dp))
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(
+                    text = stringResource(R.string.dialog_license_title),
+                    color = TextWhite,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.weight(1f)
+                )
+                CloseIconButton(
+                    contentDescription = stringResource(R.string.btn_close),
+                    onClick = onClose
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Read-only scrollable license text container
+            Card(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = CardDark)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(24.dp)
+                ) {
+                    Text(
+                        text = licenseText,
+                        color = TextWhite,
+                        fontSize = 13.sp,
+                        lineHeight = 19.sp,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 TvActionButton(
                     text = stringResource(R.string.btn_close),
                     backgroundColor = AccentColor,
