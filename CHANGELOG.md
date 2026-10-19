@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.11] - 2026-10-19
+
+### Added
+- **Signing check when packaging:** `package.sh` compares the release APK's signing certificate with `release-cert.sha256` and prints a SIGNING KEY MISMATCH warning when they differ: such a build cannot update existing installations, which must uninstall the app and install it again.
+
+### Changed
+- **Self-update signature conflict:** when the installed app has a different signing key, the update window now says so and explains to uninstall Pitwall Updater and install the new version, instead of showing the installer's raw error.
+
+---
+
 ## [1.0.10] - 2026-10-19
 
 ### Fixed
