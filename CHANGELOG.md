@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.8] - 2026-10-19
+
+### Added
+- **Pitwall Updater update check:** "Check for Updates" in the About window checks this app's own GitHub releases and always opens a result window: up to date (with the installed version), a newer version and where to download it, no published release / repository not public, or GitHub unreachable. A quiet check at start-up shows "Pitwall Updater vX available" under the header when a newer version exists. The F1 TV check on the main screen is unchanged.
+
+---
+
 ## [1.0.7] - 2026-10-19
 
 ### Added
