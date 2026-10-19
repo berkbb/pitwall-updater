@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.9] - 2026-10-19
+
+### Added
+- **Self-update:** when a newer Pitwall Updater is out, "Update Now" in the update window downloads the release APK for the TV's processor (arm32 / arm64 / x64, else universal), checks it against the SHA-256 digest GitHub publishes and installs it over the app after the TV's confirmation prompt; the app reopens by itself after the update. Download progress, the confirmation step and any failure are shown in the same window.
+
+---
+
 ## [1.0.8] - 2026-10-19
 
 ### Added
