@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.10] - 2026-10-19
+
+### Fixed
+- **Self-update permission warning:** after allowing "Install unknown apps" and returning, the update window no longer keeps showing "Permission required".
+
+---
+
 ## [1.0.9] - 2026-10-19
 
 ### Added
