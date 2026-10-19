@@ -248,6 +248,10 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
 
     fun onAppResumed() {
         val canInstall = app.packageManager.canRequestPackageInstalls()
+        // Back from the "Install unknown apps" setting with the permission: drop the stale warning
+        if (canInstall && (_uiState.value.selfInstall as? SelfInstallState.Failed)?.messageRes == R.string.status_permission_required) {
+            _uiState.update { it.copy(selfInstall = SelfInstallState.Idle) }
+        }
         val preferred = if (canInstall && _uiState.value.statusResId == R.string.status_permission_required) {
             R.string.status_permission_granted
         } else null
