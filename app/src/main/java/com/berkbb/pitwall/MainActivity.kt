@@ -22,6 +22,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import kotlinx.coroutines.launch
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.Key
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
@@ -343,7 +351,7 @@ fun AboutWindow(onClose: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .background(BackgroundDark)
-                .padding(48.dp)
+                .padding(horizontal = 48.dp, vertical = 32.dp)
         ) {
             // Title bar
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -368,26 +376,26 @@ fun AboutWindow(onClose: () -> Unit) {
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                     InfoCard(
                         title = stringResource(R.string.dialog_developer_label).trimEnd(':'),
                         value = stringResource(R.string.dialog_developer_name),
-                        height = 112.dp,
+                        height = 96.dp,
                         modifier = Modifier.weight(1f)
                     )
                     InfoCard(
                         title = stringResource(R.string.dialog_website_label).trimEnd(':'),
                         value = stringResource(R.string.dialog_website_url),
                         valueColor = Color(0xFF64B5F6),
-                        height = 112.dp,
+                        height = 96.dp,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -396,13 +404,13 @@ fun AboutWindow(onClose: () -> Unit) {
                         title = stringResource(R.string.dialog_license_label).trimEnd(':'),
                         value = stringResource(R.string.dialog_license_name),
                         valueColor = Color(0xFF81C784),
-                        height = 112.dp,
+                        height = 96.dp,
                         modifier = Modifier.weight(1f)
                     )
                     InfoCard(
                         title = stringResource(R.string.dialog_patch_label).trimEnd(':'),
                         value = stringResource(R.string.dialog_patch_author),
-                        height = 112.dp,
+                        height = 96.dp,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -414,13 +422,13 @@ fun AboutWindow(onClose: () -> Unit) {
                     InfoCard(
                         title = stringResource(R.string.dialog_device_label).trimEnd(':'),
                         value = stringResource(R.string.header_subtitle, manufacturer, model, product, abi),
-                        height = 112.dp,
+                        height = 96.dp,
                         modifier = Modifier.weight(1f)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Disclaimer beside the Action buttons
             Row(
@@ -465,6 +473,8 @@ fun AboutWindow(onClose: () -> Unit) {
 fun LicenseWindow(onClose: () -> Unit) {
     val context = LocalContext.current
     val closeFocusRequester = remember { FocusRequester() }
+    val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
     val licenseText = remember(context) {
         runCatching {
             context.assets.open("LICENSE").bufferedReader().use { it.readText() }
@@ -483,6 +493,19 @@ fun LicenseWindow(onClose: () -> Unit) {
                 .fillMaxSize()
                 .background(BackgroundDark)
                 .padding(48.dp)
+                // The text itself is not focusable: D-pad Up/Down scrolls it and only moves focus
+                // between the buttons once the text has reached its start or end.
+                .onPreviewKeyEvent { event ->
+                    val step = when (event.key) {
+                        Key.DirectionDown -> if (scrollState.canScrollForward) 300f else null
+                        Key.DirectionUp -> if (scrollState.canScrollBackward) -300f else null
+                        else -> null
+                    } ?: return@onPreviewKeyEvent false
+                    if (event.type == KeyEventType.KeyDown) {
+                        scope.launch { scrollState.animateScrollBy(step) }
+                    }
+                    true
+                }
         ) {
             // Title bar
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -520,7 +543,7 @@ fun LicenseWindow(onClose: () -> Unit) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
+                        .verticalScroll(scrollState)
                         .padding(24.dp)
                 ) {
                     Text(
