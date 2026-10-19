@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.7] - 2026-10-19
+
+### Added
+- **App version in the About window:** A Version card next to Device & Platform shows the installed Pitwall Updater version.
+
+---
+
 ## [1.0.6] - 2026-10-19
 
 ### Fixed
