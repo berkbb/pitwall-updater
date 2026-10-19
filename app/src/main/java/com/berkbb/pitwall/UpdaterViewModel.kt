@@ -38,7 +38,11 @@ data class UpdaterUiState(
     val downloadProgress: Int = 0,
     val statusResId: Int = R.string.status_detecting,
     // Format argument for statusResId: Int for %1$d strings, String for %1$s strings, null if none
-    val statusArg: Any? = null
+    val statusArg: Any? = null,
+    // Pitwall Updater's own release check (About window and the header line)
+    val selfUpdate: SelfUpdateStatus = SelfUpdateStatus.Idle,
+    // Set by a manual check from About: shown in a result window until dismissed
+    val selfUpdateResult: SelfUpdateStatus? = null
 )
 
 class UpdaterViewModel(application: Application) : AndroidViewModel(application) {
@@ -56,6 +60,33 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
         refreshInstalledState()
         checkForUpdates()
         observeInstallEvents()
+        checkSelfUpdate(manual = false)
+    }
+
+    /**
+     * Checks Pitwall Updater's own GitHub releases: quietly at start-up (only the header line
+     * shows a newer version), or from About, where every result opens a result window.
+     */
+    fun checkSelfUpdate(manual: Boolean = true) {
+        if (_uiState.value.selfUpdate is SelfUpdateStatus.Checking) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(selfUpdate = SelfUpdateStatus.Checking) }
+            val status = withContext(Dispatchers.IO) {
+                try {
+                    SelfUpdateChecker.check(BuildConfig.VERSION_NAME)
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    SelfUpdateStatus.Failed
+                }
+            }
+            _uiState.update {
+                it.copy(selfUpdate = status, selfUpdateResult = if (manual) status else it.selfUpdateResult)
+            }
+        }
+    }
+
+    fun dismissSelfUpdateResult() {
+        _uiState.update { it.copy(selfUpdateResult = null) }
     }
 
     private fun observeInstallEvents() {

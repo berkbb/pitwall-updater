@@ -58,4 +58,15 @@
     <string name="status_download_cancelled">İndirme iptal edildi.</string>
     <string name="status_insufficient_storage">Yetersiz depolama alanı: yaklaşık %1$d MB boş alan gerekiyor.</string>
     <string name="btn_close">Kapat</string>
+    <string name="btn_check_app_updates">Güncellemeleri Denetle</string>
+    <string name="btn_checking_app_updates">Denetleniyor…</string>
+    <string name="self_update_up_to_date_title">Güncelsiniz</string>
+    <string name="self_update_up_to_date">Yeni sürüm yok: Pitwall Updater\'ın en güncel sürümünü (v%1$s) kullanıyorsunuz.</string>
+    <string name="self_update_available_title">Yeni sürüm mevcut</string>
+    <string name="self_update_available">Pitwall Updater v%1$s yayınlandı (yüklü: v%2$s). Yeni APK\'yı %3$s adresinden indirip kurabilirsiniz.</string>
+    <string name="self_update_failed_title">Güncelleme denetlenemedi</string>
+    <string name="self_update_unavailable">GitHub\'da yayınlanmış bir sürüm bulunamadı ya da depo herkese açık değil.</string>
+    <string name="self_update_offline">GitHub\'a ulaşılamadı. TV\'nin internet bağlantısını denetleyip tekrar deneyin.</string>
+    <string name="self_update_badge">Pitwall Updater v%1$s mevcut</string>
+    <string name="btn_ok">Tamam</string>
 </resources>

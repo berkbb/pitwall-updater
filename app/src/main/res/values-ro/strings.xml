@@ -58,4 +58,15 @@
     <string name="status_download_cancelled">Descărcarea a fost anulată.</string>
     <string name="status_insufficient_storage">Spațiu de stocare insuficient: sunt necesari aproximativ %1$d MB.</string>
     <string name="btn_close">Închide</string>
+    <string name="btn_check_app_updates">Verifică actualizările</string>
+    <string name="btn_checking_app_updates">Se verifică…</string>
+    <string name="self_update_up_to_date_title">Actualizat</string>
+    <string name="self_update_up_to_date">Nicio versiune nouă: utilizați cea mai recentă versiune Pitwall Updater (v%1$s).</string>
+    <string name="self_update_available_title">Versiune nouă disponibilă</string>
+    <string name="self_update_available">Pitwall Updater v%1$s a fost lansată (instalată: v%2$s). Descărcați noul APK de la %3$s și instalați-l.</string>
+    <string name="self_update_failed_title">Nu s-au putut verifica actualizările</string>
+    <string name="self_update_unavailable">Nu a fost găsită nicio versiune publicată pe GitHub sau depozitul nu este public.</string>
+    <string name="self_update_offline">GitHub nu a putut fi accesat. Verificați conexiunea la internet a televizorului și încercați din nou.</string>
+    <string name="self_update_badge">Pitwall Updater v%1$s disponibil</string>
+    <string name="btn_ok">OK</string>
 </resources>

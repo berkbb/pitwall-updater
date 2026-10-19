@@ -170,6 +170,15 @@ fun PitwallScreen(
                         color = TextGray,
                         fontSize = 16.sp
                     )
+                    (uiState.selfUpdate as? SelfUpdateStatus.Available)?.let { update ->
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.self_update_badge, update.latest),
+                            color = Color(0xFFB39DDB),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
 
                 // Butonlar: Info, Dil Değiştirme ve Canlı F1 TV Aç
@@ -325,7 +334,13 @@ fun PitwallScreen(
         }
 
         if (showInfoDialog) {
-            AboutWindow(onClose = { showInfoDialog = false })
+            AboutWindow(
+                selfUpdate = uiState.selfUpdate,
+                selfUpdateResult = uiState.selfUpdateResult,
+                onCheckSelfUpdate = { viewModel.checkSelfUpdate() },
+                onDismissSelfUpdateResult = { viewModel.dismissSelfUpdateResult() },
+                onClose = { showInfoDialog = false }
+            )
         }
     }
 }
@@ -336,7 +351,13 @@ fun PitwallScreen(
  * Back closes it.
  */
 @Composable
-fun AboutWindow(onClose: () -> Unit) {
+fun AboutWindow(
+    selfUpdate: SelfUpdateStatus,
+    selfUpdateResult: SelfUpdateStatus?,
+    onCheckSelfUpdate: () -> Unit,
+    onDismissSelfUpdateResult: () -> Unit,
+    onClose: () -> Unit
+) {
     val closeFocusRequester = remember { FocusRequester() }
     var showLicenseDialog by remember { mutableStateOf(false) }
 
@@ -450,6 +471,14 @@ fun AboutWindow(onClose: () -> Unit) {
                     color = TextGray,
                     modifier = Modifier.weight(1f)
                 )
+                val checkingSelf = selfUpdate is SelfUpdateStatus.Checking
+                TvActionButton(
+                    text = stringResource(if (checkingSelf) R.string.btn_checking_app_updates else R.string.btn_check_app_updates),
+                    backgroundColor = CardDark,
+                    focusedBorderColor = Color(0xFFE0E0E0),
+                    enabled = !checkingSelf,
+                    onClick = onCheckSelfUpdate
+                )
                 TvActionButton(
                     text = stringResource(R.string.btn_view_license),
                     backgroundColor = CardDark,
@@ -468,6 +497,86 @@ fun AboutWindow(onClose: () -> Unit) {
 
         if (showLicenseDialog) {
             LicenseWindow(onClose = { showLicenseDialog = false })
+        }
+        if (selfUpdateResult != null) {
+            SelfUpdateResultWindow(result = selfUpdateResult, onClose = onDismissSelfUpdateResult)
+        }
+    }
+}
+
+/**
+ * Result of a manual "Check for Updates" in About: up to date, a newer version and where to get
+ * it, no public release, or GitHub unreachable. Full-screen like About; OK or Back closes it.
+ */
+@Composable
+fun SelfUpdateResultWindow(result: SelfUpdateStatus, onClose: () -> Unit) {
+    val okFocusRequester = remember { FocusRequester() }
+    val (title, message, color) = when (result) {
+        is SelfUpdateStatus.UpToDate -> Triple(
+            stringResource(R.string.self_update_up_to_date_title),
+            stringResource(R.string.self_update_up_to_date, result.current),
+            Color(0xFF81C784)
+        )
+        is SelfUpdateStatus.Available -> Triple(
+            stringResource(R.string.self_update_available_title),
+            stringResource(R.string.self_update_available, result.latest, result.current, SELF_RELEASES_PAGE),
+            Color(0xFFB39DDB)
+        )
+        is SelfUpdateStatus.Unavailable -> Triple(
+            stringResource(R.string.self_update_failed_title),
+            stringResource(R.string.self_update_unavailable),
+            Color(0xFFFFB74D)
+        )
+        else -> Triple(
+            stringResource(R.string.self_update_failed_title),
+            stringResource(R.string.self_update_offline),
+            Color(0xFFFFB74D)
+        )
+    }
+    Dialog(
+        onDismissRequest = onClose,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        LaunchedEffect(Unit) {
+            runCatching { okFocusRequester.requestFocus() }
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(BackgroundDark)
+                .padding(horizontal = 120.dp, vertical = 48.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(64.dp)
+                    .height(6.dp)
+                    .background(color, RoundedCornerShape(3.dp))
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = title,
+                color = TextWhite,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = message,
+                color = TextGray,
+                fontSize = 18.sp,
+                lineHeight = 26.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+            TvActionButton(
+                text = stringResource(R.string.btn_ok),
+                backgroundColor = AccentColor,
+                focusedBorderColor = Color(0xFFFFD700),
+                modifier = Modifier.focusRequester(okFocusRequester),
+                onClick = onClose
+            )
         }
     }
 }

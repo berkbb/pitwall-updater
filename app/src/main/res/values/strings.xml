@@ -58,4 +58,15 @@
     <string name="status_download_cancelled">Download cancelled.</string>
     <string name="status_insufficient_storage">Not enough free storage: about %1$d MB is required.</string>
     <string name="btn_close">Close</string>
+    <string name="btn_check_app_updates">Check for Updates</string>
+    <string name="btn_checking_app_updates">Checking…</string>
+    <string name="self_update_up_to_date_title">Up to date</string>
+    <string name="self_update_up_to_date">No new version: you are using the latest Pitwall Updater (v%1$s).</string>
+    <string name="self_update_available_title">New version available</string>
+    <string name="self_update_available">Pitwall Updater v%1$s is out (installed: v%2$s). Download the new APK from %3$s and install it.</string>
+    <string name="self_update_failed_title">Could not check for updates</string>
+    <string name="self_update_unavailable">No published release was found on GitHub, or the repository is not public.</string>
+    <string name="self_update_offline">GitHub could not be reached. Check the TV\'s internet connection and try again.</string>
+    <string name="self_update_badge">Pitwall Updater v%1$s available</string>
+    <string name="btn_ok">OK</string>
 </resources>
