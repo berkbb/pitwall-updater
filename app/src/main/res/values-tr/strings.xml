@@ -74,4 +74,5 @@
     <string name="self_update_available_install">Pitwall Updater v%1$s yayınlandı (yüklü: v%2$s). Şimdi kendini indirip kurabilir.</string>
     <string name="self_update_confirm">TV\'de çıkan kurulum onayını verin. Güncellemeden sonra Pitwall Updater yeniden açılır.</string>
     <string name="self_update_no_apk">Bu sürümde bu cihaza uygun APK yok. %1$s adresinden indirin.</string>
+    <string name="self_update_signature_conflict">Yüklü Pitwall Updater farklı bir anahtarla imzalanmış; yeni sürüm üzerine kurulamaz. Pitwall Updater\'ı kaldırıp yeni sürümü yeniden kurun (ayarları silinir; F1 TV etkilenmez).</string>
 </resources>

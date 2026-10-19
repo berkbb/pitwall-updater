@@ -208,7 +208,11 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
                         it.copy(
                             selfInstall = when (event) {
                                 is InstallEvent.Success -> SelfInstallState.Idle
-                                is InstallEvent.Failure -> SelfInstallState.Failed(R.string.toast_install_failed, event.message)
+                                is InstallEvent.Failure -> if (event.isSignatureConflict) {
+                                    SelfInstallState.Failed(R.string.self_update_signature_conflict)
+                                } else {
+                                    SelfInstallState.Failed(R.string.toast_install_failed, event.message)
+                                }
                             }
                         )
                     }

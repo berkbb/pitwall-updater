@@ -74,4 +74,5 @@
     <string name="self_update_available_install">Pitwall Updater v%1$s a fost lansată (instalată: v%2$s). Se poate descărca și instala acum.</string>
     <string name="self_update_confirm">Confirmați solicitarea de instalare de pe televizor. Pitwall Updater se redeschide după actualizare.</string>
     <string name="self_update_no_apk">Această versiune nu are un APK pentru acest dispozitiv. Descărcați-l de la %1$s.</string>
+    <string name="self_update_signature_conflict">Pitwall Updater instalat este semnat cu o altă cheie, deci noua versiune nu se poate instala peste el. Dezinstalați Pitwall Updater, apoi instalați noua versiune (setările se șterg; F1 TV nu este afectat).</string>
 </resources>

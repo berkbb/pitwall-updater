@@ -74,4 +74,5 @@
     <string name="self_update_available_install">Pitwall Updater v%1$s is out (installed: v%2$s). It can download and install itself now.</string>
     <string name="self_update_confirm">Confirm the installation prompt on the TV. Pitwall Updater reopens after the update.</string>
     <string name="self_update_no_apk">This release has no APK for this device. Download it from %1$s.</string>
+    <string name="self_update_signature_conflict">The installed Pitwall Updater is signed with a different key, so the new version cannot install over it. Uninstall Pitwall Updater, then install the new version (its settings are removed; F1 TV is not affected).</string>
 </resources>
