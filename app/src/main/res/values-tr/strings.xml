@@ -69,4 +69,9 @@
     <string name="self_update_offline">GitHub\'a ulaşılamadı. TV\'nin internet bağlantısını denetleyip tekrar deneyin.</string>
     <string name="self_update_badge">Pitwall Updater v%1$s mevcut</string>
     <string name="btn_ok">Tamam</string>
+    <string name="btn_self_update_now">Şimdi Güncelle</string>
+    <string name="btn_later">Sonra</string>
+    <string name="self_update_available_install">Pitwall Updater v%1$s yayınlandı (yüklü: v%2$s). Şimdi kendini indirip kurabilir.</string>
+    <string name="self_update_confirm">TV\'de çıkan kurulum onayını verin. Güncellemeden sonra Pitwall Updater yeniden açılır.</string>
+    <string name="self_update_no_apk">Bu sürümde bu cihaza uygun APK yok. %1$s adresinden indirin.</string>
 </resources>

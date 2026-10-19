@@ -69,4 +69,9 @@
     <string name="self_update_offline">GitHub could not be reached. Check the TV\'s internet connection and try again.</string>
     <string name="self_update_badge">Pitwall Updater v%1$s available</string>
     <string name="btn_ok">OK</string>
+    <string name="btn_self_update_now">Update Now</string>
+    <string name="btn_later">Later</string>
+    <string name="self_update_available_install">Pitwall Updater v%1$s is out (installed: v%2$s). It can download and install itself now.</string>
+    <string name="self_update_confirm">Confirm the installation prompt on the TV. Pitwall Updater reopens after the update.</string>
+    <string name="self_update_no_apk">This release has no APK for this device. Download it from %1$s.</string>
 </resources>

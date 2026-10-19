@@ -69,4 +69,9 @@
     <string name="self_update_offline">GitHub nu a putut fi accesat. Verificați conexiunea la internet a televizorului și încercați din nou.</string>
     <string name="self_update_badge">Pitwall Updater v%1$s disponibil</string>
     <string name="btn_ok">OK</string>
+    <string name="btn_self_update_now">Actualizează acum</string>
+    <string name="btn_later">Mai târziu</string>
+    <string name="self_update_available_install">Pitwall Updater v%1$s a fost lansată (instalată: v%2$s). Se poate descărca și instala acum.</string>
+    <string name="self_update_confirm">Confirmați solicitarea de instalare de pe televizor. Pitwall Updater se redeschide după actualizare.</string>
+    <string name="self_update_no_apk">Această versiune nu are un APK pentru acest dispozitiv. Descărcați-l de la %1$s.</string>
 </resources>

@@ -51,14 +51,7 @@ object PackageInstallerHelper {
                 }
 
                 // Kurulumu başlat (Android TV yerel onay kutucuğunu açar)
-                val intent = Intent(context, InstallResultReceiver::class.java)
-                val pendingIntent = PendingIntent.getBroadcast(
-                    context,
-                    sessionId,
-                    intent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-                )
-                activeSession.commit(pendingIntent.intentSender)
+                commit(context, activeSession, sessionId, selfUpdate = false)
             }
             return InstallStartResult.STARTED
         } catch (e: Exception) {
@@ -72,6 +65,51 @@ object PackageInstallerHelper {
                 session?.close()
             } catch (_: Exception) {}
         }
+    }
+
+    /** Installs a newer Pitwall Updater APK over this app; the TV asks for confirmation. */
+    fun installSelfApk(context: Context, apkFile: File): InstallStartResult {
+        val packageInstaller = context.packageManager.packageInstaller
+        val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
+        params.setAppPackageName(context.packageName)
+        params.setSize(apkFile.length())
+
+        var session: PackageInstaller.Session? = null
+        return try {
+            val sessionId = packageInstaller.createSession(params)
+            session = packageInstaller.openSession(sessionId)
+            apkFile.inputStream().use { inStream ->
+                session.openWrite("base.apk", 0, apkFile.length()).use { outStream ->
+                    inStream.copyTo(outStream)
+                    session.fsync(outStream)
+                }
+            }
+            commit(context, session, sessionId, selfUpdate = true)
+            InstallStartResult.STARTED
+        } catch (e: Exception) {
+            e.printStackTrace()
+            try {
+                session?.abandon()
+            } catch (_: Exception) {}
+            InstallStartResult.FAILED
+        } finally {
+            try {
+                session?.close()
+            } catch (_: Exception) {}
+        }
+    }
+
+    /** Commits a session; [InstallResultReceiver] gets the result, tagged with [selfUpdate]. */
+    private fun commit(context: Context, session: PackageInstaller.Session, sessionId: Int, selfUpdate: Boolean) {
+        val intent = Intent(context, InstallResultReceiver::class.java)
+            .putExtra(InstallResultReceiver.EXTRA_SELF_UPDATE, selfUpdate)
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            sessionId,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+        )
+        session.commit(pendingIntent.intentSender)
     }
 
     /** Session split names must not contain path separators; keep only the file name. */

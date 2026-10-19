@@ -42,7 +42,8 @@ data class UpdaterUiState(
     // Pitwall Updater's own release check (About window and the header line)
     val selfUpdate: SelfUpdateStatus = SelfUpdateStatus.Idle,
     // Set by a manual check from About: shown in a result window until dismissed
-    val selfUpdateResult: SelfUpdateStatus? = null
+    val selfUpdateResult: SelfUpdateStatus? = null,
+    val selfInstall: SelfInstallState = SelfInstallState.Idle
 )
 
 class UpdaterViewModel(application: Application) : AndroidViewModel(application) {
@@ -52,6 +53,7 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
 
     private var latestRelease: ReleaseInfo? = null
     private var installJob: Job? = null
+    private var selfInstallJob: Job? = null
     @Volatile private var activeConnection: HttpURLConnection? = null
 
     private val app: Application get() = getApplication()
@@ -86,12 +88,136 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun dismissSelfUpdateResult() {
-        _uiState.update { it.copy(selfUpdateResult = null) }
+        _uiState.update {
+            // A finished or failed attempt is forgotten with its window; a running one keeps going.
+            val install = if (it.selfInstall is SelfInstallState.Failed) SelfInstallState.Idle else it.selfInstall
+            it.copy(selfUpdateResult = null, selfInstall = install)
+        }
+    }
+
+    /**
+     * Downloads the newer Pitwall Updater APK for this device, checks it against the release's
+     * SHA-256 and installs it over this app; the TV asks for confirmation and the app restarts.
+     */
+    fun installSelfUpdate() {
+        val update = (_uiState.value.selfUpdateResult ?: _uiState.value.selfUpdate) as? SelfUpdateStatus.Available ?: return
+        val apk = update.apk ?: run {
+            _uiState.update { it.copy(selfInstall = SelfInstallState.Failed(R.string.self_update_no_apk, SELF_RELEASES_PAGE)) }
+            return
+        }
+        if (!app.packageManager.canRequestPackageInstalls()) {
+            _uiState.update { it.copy(selfInstall = SelfInstallState.Failed(R.string.status_permission_required)) }
+            openInstallPermissionSettings()
+            return
+        }
+        if (selfInstallJob?.isActive == true) return
+
+        selfInstallJob = viewModelScope.launch {
+            _uiState.update { it.copy(selfInstall = SelfInstallState.Downloading(0)) }
+            val target = File(app.cacheDir, "pitwall-updater-${ReleaseResolver.cacheFileName(apk.tag).removeSuffix(".apkm")}.apk")
+            val downloaded = withContext(Dispatchers.IO) { downloadSelfApk(apk, target) }
+            if (!downloaded) {
+                _uiState.update { it.copy(selfInstall = SelfInstallState.Failed(R.string.status_download_failed)) }
+                return@launch
+            }
+            // Reopen the app once the system has replaced it (see SelfUpdateRestartReceiver)
+            app.getSharedPreferences(SelfUpdateRestartReceiver.PREFS, android.content.Context.MODE_PRIVATE)
+                .edit().putBoolean(SelfUpdateRestartReceiver.KEY_PENDING, true).apply()
+            val result = withContext(Dispatchers.IO) { PackageInstallerHelper.installSelfApk(app, target) }
+            _uiState.update {
+                it.copy(
+                    selfInstall = if (result == InstallStartResult.STARTED) SelfInstallState.WaitingForConfirmation
+                    else SelfInstallState.Failed(R.string.status_install_failed)
+                )
+            }
+        }
+    }
+
+    /** Downloads into a .part file and keeps it only when it matches the release digest/size. */
+    private suspend fun downloadSelfApk(apk: ReleaseInfo, target: File): Boolean {
+        if (ApkmCache.isValid(target, apk)) return true
+        val part = ApkmCache.partialFileFor(target)
+        var conn: HttpURLConnection? = null
+        try {
+            conn = (URL(apk.downloadUrl).openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                instanceFollowRedirects = true
+                setRequestProperty("User-Agent", "PitwallUpdater/${BuildConfig.VERSION_NAME}")
+                connectTimeout = 15000
+                readTimeout = 30000
+            }
+            if (conn.responseCode != HttpURLConnection.HTTP_OK) return false
+            val total = conn.contentLengthLong.takeIf { it > 0 } ?: apk.size
+            var done = 0L
+            var lastProgress = -1
+            conn.inputStream.use { input ->
+                FileOutputStream(part).use { output ->
+                    val buffer = ByteArray(64 * 1024)
+                    while (true) {
+                        currentCoroutineContext().ensureActive()
+                        val read = input.read(buffer)
+                        if (read == -1) break
+                        output.write(buffer, 0, read)
+                        done += read
+                        val progress = if (total > 0) ((done * 100) / total).toInt().coerceIn(0, 100) else 0
+                        if (progress != lastProgress) {
+                            lastProgress = progress
+                            _uiState.update { it.copy(selfInstall = SelfInstallState.Downloading(progress)) }
+                        }
+                    }
+                }
+            }
+            if (!ApkmCache.isValid(part, apk)) return false
+            target.delete()
+            return part.renameTo(target)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return false
+        } finally {
+            conn?.disconnect()
+            if (part.exists()) part.delete()
+        }
+    }
+
+    /** Opens the system "Install unknown apps" setting for this app (security settings as a fallback). */
+    private fun openInstallPermissionSettings() {
+        try {
+            val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                data = "package:${app.packageName}".toUri()
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            app.startActivity(intent)
+        } catch (e: Exception) {
+            try {
+                val fallback = Intent(Settings.ACTION_SECURITY_SETTINGS).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                app.startActivity(fallback)
+            } catch (_: Exception) {}
+        }
     }
 
     private fun observeInstallEvents() {
         viewModelScope.launch {
             InstallEvents.events.collect { event ->
+                if (event.selfUpdate) {
+                    // Success normally never arrives: the system replaces (and stops) this app first.
+                    _uiState.update {
+                        it.copy(
+                            selfInstall = when (event) {
+                                is InstallEvent.Success -> SelfInstallState.Idle
+                                is InstallEvent.Failure -> SelfInstallState.Failed(R.string.toast_install_failed, event.message)
+                            }
+                        )
+                    }
+                    if (event is InstallEvent.Failure) {
+                        app.getSharedPreferences(SelfUpdateRestartReceiver.PREFS, android.content.Context.MODE_PRIVATE)
+                            .edit().remove(SelfUpdateRestartReceiver.KEY_PENDING).apply()
+                    }
+                    return@collect
+                }
                 when (event) {
                     is InstallEvent.Success -> {
                         _uiState.update { it.copy(isSignatureConflict = false) }
@@ -244,20 +370,7 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
     fun downloadAndInstall() {
         if (!app.packageManager.canRequestPackageInstalls()) {
             _uiState.update { it.copy(statusResId = R.string.status_permission_required, statusArg = null) }
-            try {
-                val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
-                    data = "package:${app.packageName}".toUri()
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                app.startActivity(intent)
-            } catch (e: Exception) {
-                try {
-                    val fallback = Intent(Settings.ACTION_SECURITY_SETTINGS).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    app.startActivity(fallback)
-                } catch (_: Exception) {}
-            }
+            openInstallPermissionSettings()
             return
         }
 

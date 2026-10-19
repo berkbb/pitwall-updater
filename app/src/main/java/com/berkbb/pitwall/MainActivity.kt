@@ -337,7 +337,9 @@ fun PitwallScreen(
             AboutWindow(
                 selfUpdate = uiState.selfUpdate,
                 selfUpdateResult = uiState.selfUpdateResult,
+                selfInstall = uiState.selfInstall,
                 onCheckSelfUpdate = { viewModel.checkSelfUpdate() },
+                onInstallSelfUpdate = { viewModel.installSelfUpdate() },
                 onDismissSelfUpdateResult = { viewModel.dismissSelfUpdateResult() },
                 onClose = { showInfoDialog = false }
             )
@@ -354,7 +356,9 @@ fun PitwallScreen(
 fun AboutWindow(
     selfUpdate: SelfUpdateStatus,
     selfUpdateResult: SelfUpdateStatus?,
+    selfInstall: SelfInstallState,
     onCheckSelfUpdate: () -> Unit,
+    onInstallSelfUpdate: () -> Unit,
     onDismissSelfUpdateResult: () -> Unit,
     onClose: () -> Unit
 ) {
@@ -499,18 +503,30 @@ fun AboutWindow(
             LicenseWindow(onClose = { showLicenseDialog = false })
         }
         if (selfUpdateResult != null) {
-            SelfUpdateResultWindow(result = selfUpdateResult, onClose = onDismissSelfUpdateResult)
+            SelfUpdateResultWindow(
+                result = selfUpdateResult,
+                install = selfInstall,
+                onInstall = onInstallSelfUpdate,
+                onClose = onDismissSelfUpdateResult
+            )
         }
     }
 }
 
 /**
- * Result of a manual "Check for Updates" in About: up to date, a newer version and where to get
- * it, no public release, or GitHub unreachable. Full-screen like About; OK or Back closes it.
+ * Result of a manual "Check for Updates" in About: up to date, no public release, GitHub
+ * unreachable, or a newer version that can download and install itself ("Update Now").
+ * Full-screen like About; Later/OK or Back closes it.
  */
 @Composable
-fun SelfUpdateResultWindow(result: SelfUpdateStatus, onClose: () -> Unit) {
-    val okFocusRequester = remember { FocusRequester() }
+fun SelfUpdateResultWindow(
+    result: SelfUpdateStatus,
+    install: SelfInstallState,
+    onInstall: () -> Unit,
+    onClose: () -> Unit
+) {
+    val primaryFocusRequester = remember { FocusRequester() }
+    val canInstall = result is SelfUpdateStatus.Available && result.apk != null
     val (title, message, color) = when (result) {
         is SelfUpdateStatus.UpToDate -> Triple(
             stringResource(R.string.self_update_up_to_date_title),
@@ -519,7 +535,8 @@ fun SelfUpdateResultWindow(result: SelfUpdateStatus, onClose: () -> Unit) {
         )
         is SelfUpdateStatus.Available -> Triple(
             stringResource(R.string.self_update_available_title),
-            stringResource(R.string.self_update_available, result.latest, result.current, SELF_RELEASES_PAGE),
+            if (result.apk != null) stringResource(R.string.self_update_available_install, result.latest, result.current)
+            else stringResource(R.string.self_update_available, result.latest, result.current, SELF_RELEASES_PAGE),
             Color(0xFFB39DDB)
         )
         is SelfUpdateStatus.Unavailable -> Triple(
@@ -533,12 +550,21 @@ fun SelfUpdateResultWindow(result: SelfUpdateStatus, onClose: () -> Unit) {
             Color(0xFFFFB74D)
         )
     }
+    val busy = install is SelfInstallState.Downloading || install is SelfInstallState.WaitingForConfirmation
+    val installLine: Pair<String, Color>? = when (install) {
+        is SelfInstallState.Downloading -> stringResource(R.string.status_downloading, install.progress) to TextWhite
+        is SelfInstallState.WaitingForConfirmation -> stringResource(R.string.self_update_confirm) to Color(0xFF81C784)
+        is SelfInstallState.Failed -> (
+            if (install.arg != null) stringResource(install.messageRes, install.arg) else stringResource(install.messageRes)
+        ) to Color(0xFFFFB74D)
+        else -> null
+    }
     Dialog(
         onDismissRequest = onClose,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         LaunchedEffect(Unit) {
-            runCatching { okFocusRequester.requestFocus() }
+            runCatching { primaryFocusRequester.requestFocus() }
         }
         Column(
             modifier = Modifier
@@ -569,14 +595,44 @@ fun SelfUpdateResultWindow(result: SelfUpdateStatus, onClose: () -> Unit) {
                 lineHeight = 26.sp,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
+            if (installLine != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = installLine.first,
+                    color = installLine.second,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
             Spacer(modifier = Modifier.height(32.dp))
-            TvActionButton(
-                text = stringResource(R.string.btn_ok),
-                backgroundColor = AccentColor,
-                focusedBorderColor = Color(0xFFFFD700),
-                modifier = Modifier.focusRequester(okFocusRequester),
-                onClick = onClose
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                if (canInstall) {
+                    TvActionButton(
+                        text = stringResource(R.string.btn_self_update_now),
+                        backgroundColor = AccentColor,
+                        focusedBorderColor = Color(0xFFFFD700),
+                        enabled = !busy,
+                        isLoading = install is SelfInstallState.Downloading,
+                        modifier = Modifier.focusRequester(primaryFocusRequester),
+                        onClick = onInstall
+                    )
+                    TvActionButton(
+                        text = stringResource(R.string.btn_later),
+                        backgroundColor = CardDark,
+                        focusedBorderColor = Color(0xFFE0E0E0),
+                        onClick = onClose
+                    )
+                } else {
+                    TvActionButton(
+                        text = stringResource(R.string.btn_ok),
+                        backgroundColor = AccentColor,
+                        focusedBorderColor = Color(0xFFFFD700),
+                        modifier = Modifier.focusRequester(primaryFocusRequester),
+                        onClick = onClose
+                    )
+                }
+            }
         }
     }
 }

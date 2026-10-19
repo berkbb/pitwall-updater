@@ -9,9 +9,16 @@ import androidx.core.content.IntentCompat
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
+/** [selfUpdate]: the session installed Pitwall Updater itself, not F1 TV. */
 sealed interface InstallEvent {
-    data object Success : InstallEvent
-    data class Failure(val message: String, val isSignatureConflict: Boolean = false) : InstallEvent
+    val selfUpdate: Boolean
+
+    data class Success(override val selfUpdate: Boolean = false) : InstallEvent
+    data class Failure(
+        val message: String,
+        val isSignatureConflict: Boolean = false,
+        override val selfUpdate: Boolean = false
+    ) : InstallEvent
 }
 
 object InstallEvents {
@@ -28,7 +35,12 @@ object InstallEvents {
  * PendingIntent (handed to the system installer) can deliver results here.
  */
 class InstallResultReceiver : BroadcastReceiver() {
+    companion object {
+        const val EXTRA_SELF_UPDATE = "com.berkbb.pitwall.extra.SELF_UPDATE"
+    }
+
     override fun onReceive(context: Context, intent: Intent) {
+        val selfUpdate = intent.getBooleanExtra(EXTRA_SELF_UPDATE, false)
         val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)
         val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
 
@@ -41,13 +53,13 @@ class InstallResultReceiver : BroadcastReceiver() {
                 }
             }
             PackageInstaller.STATUS_SUCCESS -> {
-                InstallEvents.emit(InstallEvent.Success)
+                InstallEvents.emit(InstallEvent.Success(selfUpdate))
             }
             else -> {
                 // STATUS_FAILURE_CONFLICT covers INSTALL_FAILED_UPDATE_INCOMPATIBLE (different signing key)
                 val isConflict = status == PackageInstaller.STATUS_FAILURE_CONFLICT ||
                     message?.contains("UPDATE_INCOMPATIBLE") == true
-                InstallEvents.emit(InstallEvent.Failure(message ?: "Code $status", isConflict))
+                InstallEvents.emit(InstallEvent.Failure(message ?: "Code $status", isConflict, selfUpdate))
             }
         }
     }
