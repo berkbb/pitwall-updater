@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.6] - 2026-10-19
+
+### Fixed
+- **About window fits on one TV screen:** Slimmer info cards and tighter vertical spacing keep the Device & Platform card fully visible on 1080p (960×540 dp) TVs instead of cutting it off at the bottom.
+- **License viewer scrolls with the D-pad:** Up/Down now scroll the license text; focus moves on to the buttons only once the text reaches its start or end.
+
+---
+
 ## [1.0.5] - 2026-10-18
 
 ### Changed

@@ -7,7 +7,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-val appVersionName = "1.0.5"
+val appVersionName = "1.0.6"
 
 // Release signing: keystore.properties (git-ignored) or PITWALL_* environment variables.
 val keystoreProperties = Properties().apply {
@@ -30,7 +30,7 @@ android {
         applicationId = "com.berkbb.pitwall"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
+        versionCode = 7
         versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
