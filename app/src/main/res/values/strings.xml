@@ -46,6 +46,7 @@
     <string name="dialog_license_name">GNU General Public License v3.0</string>
     <string name="dialog_license_title">GNU General Public License v3.0</string>
     <string name="btn_view_license">View License</string>
+    <string name="dialog_version_label">Version:</string>
     <string name="dialog_device_label">Device &amp; Platform:</string>
     <string name="dialog_disclaimer">Unofficial, independent open-source updater for the F1 TV app. Not affiliated with or endorsed by Formula One Licensing B.V. or Formula 1.</string>
     <string name="btn_language">🌐 %1$s</string>

@@ -420,10 +420,17 @@ fun AboutWindow(onClose: () -> Unit) {
                     val product = android.os.Build.PRODUCT
                     val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "arm"
                     InfoCard(
+                        title = stringResource(R.string.dialog_version_label).trimEnd(':'),
+                        value = "v${BuildConfig.VERSION_NAME}",
+                        valueColor = Color(0xFFB39DDB),
+                        height = 96.dp,
+                        modifier = Modifier.weight(1f)
+                    )
+                    InfoCard(
                         title = stringResource(R.string.dialog_device_label).trimEnd(':'),
                         value = stringResource(R.string.header_subtitle, manufacturer, model, product, abi),
                         height = 96.dp,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(2f)
                     )
                 }
             }

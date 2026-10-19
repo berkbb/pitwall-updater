@@ -46,6 +46,7 @@
     <string name="dialog_license_name">GNU Genel Kamu Lisansı v3.0</string>
     <string name="dialog_license_title">GNU Genel Kamu Lisansı v3.0</string>
     <string name="btn_view_license">Lisansı Görüntüle</string>
+    <string name="dialog_version_label">Sürüm:</string>
     <string name="dialog_device_label">Cihaz &amp; Platform:</string>
     <string name="dialog_disclaimer">F1 TV uygulaması için resmi olmayan, bağımsız açık kaynak güncelleyicidir. Formula One Licensing B.V. veya Formula 1 ile resmi bir bağı yoktur.</string>
     <string name="btn_language">🌐 %1$s</string>
