@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Pitwall Updater release packager: runs the unit tests, assembles the release APK
-# and copies it (with a SHA-256 checksum) into dist/.
+# Pitwall Updater release packager: runs the unit tests, assembles the release APK and copies it
+# (with a SHA-256 checksum) into dist/. Pure Kotlin, so one universal APK serves every TV.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -40,7 +40,7 @@ if [[ -z "$VERSION" ]]; then
     echo "❌ Could not read appVersionName from app/build.gradle.kts." >&2
     exit 1
 fi
-APK_DIR="app/build/outputs/apk/release"
+APK="app/build/outputs/apk/release/pitwall-updater-v${VERSION}-universal-release.apk"
 
 # Signing check: installed apps (and their in-app update) only accept a new version signed with the
 # same key. release-cert.sha256 holds the expected certificate; a mismatch is reported, not fatal.
@@ -75,41 +75,24 @@ WARN
 }
 
 if [[ ! -f keystore.properties && -z "${PITWALL_KEYSTORE_FILE:-}" ]]; then
-    echo "⚠️  No release keystore configured; the packages will be signed with the debug key."
+    echo "⚠️  No release keystore configured; the package will be signed with the debug key."
 fi
 
-echo "🧪 Running unit tests and building release v$VERSION (universal, x64, arm64, arm32 APKs)..."
+echo "🧪 Running unit tests and building release v$VERSION..."
 ./gradlew clean test assembleRelease
 
-# Expected outputs: universal, x64, arm64, arm32 APKs
-TARGETS=(
-    "universal:universal"
-    "x86_64:x64"
-    "arm64-v8a:arm64"
-    "armeabi-v7a:arm32"
-)
+if [[ ! -f "$APK" ]]; then
+    echo "❌ Expected output not found: $APK" >&2
+    exit 1
+fi
 
 rm -rf dist
 mkdir -p dist
-
-for pair in "${TARGETS[@]}"; do
-    abi="${pair%%:*}"
-    target="${pair##*:}"
-    src="$APK_DIR/pitwall-updater-v${VERSION}-${target}-release.apk"
-    if [[ ! -f "$src" ]]; then
-        src="$APK_DIR/pitwall-updater-v${VERSION}-${abi}-release.apk"
-    fi
-    if [[ ! -f "$src" ]]; then
-        echo "❌ Expected output not found: $src" >&2
-        exit 1
-    fi
-    cp "$src" "dist/pitwall-updater-v${VERSION}-${target}-release.apk"
-done
-
+cp "$APK" dist/
 (cd dist && shasum -a 256 *.apk > SHA256SUMS)
 
 check_release_signing "dist/pitwall-updater-v${VERSION}-universal-release.apk"
 
-echo "✅ Release packages ready in dist/:"
+echo "✅ Release package ready in dist/:"
 (cd dist && ls -lh *.apk | awk '{print "   " $NF " (" $5 ")"}')
 echo "   SHA256SUMS"

@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Single Universal APK:** Release packaging now produces only `pitwall-updater-v<version>-universal-release.apk`. The app has no native libraries, so the per-ABI `arm64` / `arm32` / `x64` APKs were identical in content. Older installs keep updating: their self-update falls back to the universal APK when no per-ABI APK is published.
+
 ---
 
 ## [1.0.11] - 2026-10-19

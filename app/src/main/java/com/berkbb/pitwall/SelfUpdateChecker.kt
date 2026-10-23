@@ -71,7 +71,7 @@ object SelfUpdateChecker {
         }
     }
 
-    /** Release APK names (see package.sh) by Android ABI; the universal APK is the fallback. */
+    /** Per-ABI APK names from older releases; current releases (see package.sh) ship only the universal APK. */
     private val ABI_SUFFIXES = mapOf("arm64-v8a" to "arm64", "armeabi-v7a" to "arm32", "x86_64" to "x64")
 
     /** The APK for the first supported ABI the release ships, else the universal APK, else null. */

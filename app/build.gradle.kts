@@ -68,16 +68,6 @@ android {
         }
     }
 
-    // Per-ABI APKs: x64 (x86_64), arm32 (armeabi-v7a), arm64 (arm64-v8a), plus universal APK
-    splits {
-        abi {
-            isEnable = providers.gradleProperty("pitwall.abiSplits").orNull?.toBoolean() ?: true
-            reset()
-            include("x86_64", "armeabi-v7a", "arm64-v8a")
-            isUniversalApk = true
-        }
-    }
-
     // Keep all language resources in the base APK of the AAB (TVs sideload, no Play language splits)
     bundle {
         language {
@@ -100,33 +90,16 @@ kotlin {
     }
 }
 
-// APK output name: pitwall-updater-v<version>-release.apk (replaces the removed applicationVariants API)
+// Pure Kotlin, no native libraries: one universal APK serves every ABI.
+// APK output name: pitwall-updater-v<version>-universal-release.apk (replaces the removed applicationVariants API)
 base {
-    archivesName.set("pitwall-updater-v$appVersionName")
+    archivesName.set("pitwall-updater-v$appVersionName-universal")
 }
 
 androidComponents {
     // Release-only packaging: the debug variant is disabled
     beforeVariants(selector().withBuildType("debug")) { variantBuilder ->
         variantBuilder.enable = false
-    }
-}
-
-tasks.matching { it.name == "assembleRelease" }.configureEach {
-    doLast {
-        val apkDir = layout.buildDirectory.dir("outputs/apk/release").get().asFile
-        val mapping = mapOf(
-            "x86_64" to "x64",
-            "arm64-v8a" to "arm64",
-            "armeabi-v7a" to "arm32"
-        )
-        mapping.forEach { (abi, target) ->
-            val src = File(apkDir, "pitwall-updater-v$appVersionName-$abi-release.apk")
-            val dst = File(apkDir, "pitwall-updater-v$appVersionName-$target-release.apk")
-            if (src.exists()) {
-                src.copyTo(dst, overwrite = true)
-            }
-        }
     }
 }
 
