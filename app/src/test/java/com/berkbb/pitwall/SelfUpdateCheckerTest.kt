@@ -35,6 +35,15 @@ class SelfUpdateCheckerTest {
     }
 
     @Test
+    fun universalOnlyReleaseServesEveryAbi() {
+        // Current releases ship only the universal APK (see package.sh)
+        val universalOnly = assets.filter { "-arm" !in it.name && "-x64" !in it.name }
+        for (abis in listOf(arrayOf("armeabi-v7a", "armeabi"), arrayOf("arm64-v8a", "armeabi-v7a"), arrayOf("x86_64"))) {
+            assertEquals("https://example.com/universal.apk", SelfUpdateChecker.selectApk("v1.0.9", universalOnly, abis)?.downloadUrl)
+        }
+    }
+
+    @Test
     fun missingTagIsUnavailable() {
         assertEquals(SelfUpdateStatus.Unavailable, SelfUpdateChecker.statusFor("", "1.0.7"))
     }
