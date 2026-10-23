@@ -123,7 +123,7 @@ Upon build completion, the generated release APK file is located at:
 | :--- | :--- |
 | `pitwall-updater-v<version>-universal-release.apk` | All architectures |
 
-Pitwall Updater is pure Kotlin with no native libraries, so one universal APK serves every architecture. (The F1 TV bundle it installs is still resolved per TV processor at install time.)
+Pitwall Updater is pure Kotlin; its only native code is Compose's small `androidx.graphics.path` library (about 10 KB per architecture), so one universal APK serves every architecture. (The F1 TV bundle it installs is still resolved per TV processor at install time.)
 
 ---
 

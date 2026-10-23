@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Pitwall Updater release packager: runs the unit tests, assembles the release APK and copies it
-# (with a SHA-256 checksum) into dist/. Pure Kotlin, so one universal APK serves every TV.
+# (with a SHA-256 checksum) into dist/. Pure Kotlin (native code is only
+# Compose's ~10 KB graphics-path library per ABI), so one universal APK serves every TV.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

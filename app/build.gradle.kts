@@ -90,7 +90,7 @@ kotlin {
     }
 }
 
-// Pure Kotlin, no native libraries: one universal APK serves every ABI.
+// Pure Kotlin; the only native code is Compose's ~10 KB androidx.graphics.path per ABI, so one universal APK serves every ABI.
 // APK output name: pitwall-updater-v<version>-universal-release.apk (replaces the removed applicationVariants API)
 base {
     archivesName.set("pitwall-updater-v$appVersionName-universal")
