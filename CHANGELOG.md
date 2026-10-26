@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Single Universal APK:** Release packaging now produces only `pitwall-updater-v<version>-universal-release.apk`. The app's only native code is Compose's `androidx.graphics.path` (about 10 KB per ABI), so the per-ABI `arm64` / `arm32` / `x64` APKs saved only about 27 KB each. Older installs keep updating: their self-update falls back to the universal APK when no per-ABI APK is published.
 
+### Security
+- **Release signing off the debug keystore:** without a configured keystore, releases fell back to `~/.android/debug.keystore`, whose password is public. Releases now use the TV apps' shared keystore `~/.signing/babadogan-tv-release.p12` (same certificate, so installed TVs keep updating) with a strong password kept in the macOS Keychain, or `keystore.properties` / `PITWALL_*` variables; the debug key is only a fallback with a warning.
+
 ---
 
 ## [1.0.11] - 2026-10-19

@@ -14,7 +14,7 @@ This rule document establishes strict privacy, metadata sanitization, and securi
 ### 2. Identity & Certificate Sanitization
 - **Generated Certificates:** Any programmatic or build-time X.509 certificate generation must use standard open-source distinguished names:
   `CN=PitwallUpdater, O=OpenSource, C=US`
-- **Release Signing Secrets:** Keystores and passwords are supplied only through git-ignored `keystore.properties` or `PITWALL_*` environment variables.
+- **Release Signing Secrets:** Keystores and passwords are supplied only through git-ignored `keystore.properties`, `PITWALL_*` environment variables, or the TV apps' shared keystore outside the repository (`~/.signing/babadogan-tv-release.p12`) with its password in the macOS Keychain item `babadogan-tv-release-keystore`. Never write the password into any file.
 - **Zero Sensitive Data:** No private email addresses, personal phone numbers, physical addresses, API secrets, or passwords may be stored anywhere in the codebase.
 
 ### 3. Zero Telemetry & Privacy Preservation

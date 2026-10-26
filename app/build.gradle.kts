@@ -9,13 +9,24 @@ plugins {
 
 val appVersionName = "1.0.11"
 
-// Release signing: keystore.properties (git-ignored) or PITWALL_* environment variables.
+// Release signing, first match wins: keystore.properties (git-ignored), PITWALL_* environment
+// variables, or the TV apps' shared keystore ~/.signing/babadogan-tv-release.p12, whose password
+// is the macOS Keychain item "babadogan-tv-release-keystore".
 val keystoreProperties = Properties().apply {
     val file = rootProject.file("keystore.properties")
     if (file.exists()) file.inputStream().use { load(it) }
 }
 fun signingValue(key: String, env: String): String? = keystoreProperties.getProperty(key) ?: System.getenv(env)
-val releaseStoreFile = signingValue("storeFile", "PITWALL_KEYSTORE_FILE")
+val sharedKeystore = File(System.getProperty("user.home"), ".signing/babadogan-tv-release.p12")
+val releaseStoreFile = signingValue("storeFile", "PITWALL_KEYSTORE_FILE") ?: sharedKeystore.takeIf { it.isFile }?.path
+// macOS only; elsewhere the password comes from keystore.properties or the environment.
+fun keychainPassword(): String? = runCatching {
+    providers.exec {
+        commandLine("security", "find-generic-password", "-s", "babadogan-tv-release-keystore", "-w")
+        isIgnoreExitValue = true
+    }.standardOutput.asText.get().trim()
+}.getOrNull()?.ifEmpty { null }
+val releaseStorePassword = releaseStoreFile?.let { signingValue("storePassword", "PITWALL_KEYSTORE_PASSWORD") ?: keychainPassword() }
 
 android {
     namespace = "com.berkbb.pitwall"
@@ -40,9 +51,9 @@ android {
         create("release") {
             if (releaseStoreFile != null) {
                 storeFile = rootProject.file(releaseStoreFile)
-                storePassword = signingValue("storePassword", "PITWALL_KEYSTORE_PASSWORD")
-                keyAlias = signingValue("keyAlias", "PITWALL_KEY_ALIAS")
-                keyPassword = signingValue("keyPassword", "PITWALL_KEY_PASSWORD")
+                storePassword = releaseStorePassword
+                keyAlias = signingValue("keyAlias", "PITWALL_KEY_ALIAS") ?: "babadogan-tv"
+                keyPassword = signingValue("keyPassword", "PITWALL_KEY_PASSWORD") ?: releaseStorePassword
             }
         }
     }
@@ -62,7 +73,7 @@ android {
                 signingConfigs.getByName("release")
             } else {
                 // Fallback keeps local builds working, but debug-signed APKs cannot update each other across machines
-                logger.warn("Pitwall: no release keystore configured (keystore.properties / PITWALL_KEYSTORE_FILE); signing release with the debug key.")
+                logger.warn("Pitwall: no release keystore (keystore.properties, PITWALL_KEYSTORE_FILE or ~/.signing/babadogan-tv-release.p12); signing release with the debug key.")
                 signingConfigs.getByName("debug")
             }
         }

@@ -31,7 +31,7 @@ All AI agents operating within this repository must adhere strictly to this cons
 
 ### 5. Strict Privacy, Sanitization & Path Hygiene Invariant
 - **Zero Absolute Local Paths:** Agents must never write or commit absolute local system paths (such as `/Users/`, `C:\Users\`, or `file:///Users/`) into any source file, Markdown documentation, or build script. All internal Markdown references must use clean relative paths.
-- **Zero Sensitive / Personal Metadata:** Any generated certificate must use generic open-source distinguished names (`CN=PitwallUpdater, O=OpenSource, C=US`). Release keystores and their passwords live only in git-ignored `keystore.properties` or `PITWALL_*` environment variables; machine-specific files (`local.properties`) and JDK paths (`org.gradle.java.home`) must never be committed.
+- **Zero Sensitive / Personal Metadata:** Any generated certificate must use generic open-source distinguished names (`CN=PitwallUpdater, O=OpenSource, C=US`). Release keystores and their passwords live only in git-ignored `keystore.properties`, `PITWALL_*` environment variables, or the shared keystore outside the repository (`~/.signing/babadogan-tv-release.p12`, password in the macOS Keychain); machine-specific files (`local.properties`) and JDK paths (`org.gradle.java.home`) must never be committed.
 - **Install Pipeline Security:** `InstallResultReceiver` must stay non-exported, downloaded bundles must be verified (SHA-256 digest or exact size) before installation, and `<queries>` must declare `com.formulaone.production`.
 - **Zero Telemetry & Secret Leakage:** The application must strictly contain zero tracking SDKs, zero telemetry, zero analytics, and zero credentials.
 

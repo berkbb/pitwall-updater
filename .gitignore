@@ -19,6 +19,7 @@ local.properties
 keystore.properties
 *.jks
 *.keystore
+*.p12
 
 # Proguard / R8 mapping files
 app/proguard/

@@ -95,18 +95,23 @@ Ensure a JDK (17–21) and the Android SDK are installed, then run the following
 
 ### 🔐 Release Signing
 
-Release builds are signed with a dedicated keystore when one is configured, so APKs built on different machines can update each other. Create a git-ignored `keystore.properties` in the repository root:
+Release builds are signed with the first of these:
 
-```properties
-storeFile=/path/to/pitwall-release.jks
-storePassword=…
-keyAlias=pitwall
-keyPassword=…
-```
+1. a git-ignored `keystore.properties` in the repository root:
 
-Alternatively set the `PITWALL_KEYSTORE_FILE`, `PITWALL_KEYSTORE_PASSWORD`, `PITWALL_KEY_ALIAS`, and `PITWALL_KEY_PASSWORD` environment variables. Without either, the build falls back to the local debug key and prints a warning.
+   ```properties
+   storeFile=/path/to/release.p12
+   storePassword=…
+   keyAlias=…
+   keyPassword=…
+   ```
 
-Installed copies only accept an update signed with the same key, and the in-app update (About > Check for Updates) depends on it. `release-cert.sha256` holds the expected signing certificate; the packaging script compares every release against it and prints a **SIGNING KEY MISMATCH** warning when they differ. A build with a different key cannot update existing installations: on those devices the app must be uninstalled first and the new version installed again, which removes its data. To keep the key, package on the original machine or copy its `~/.android/debug.keystore`; after switching to a dedicated keystore on purpose, update `release-cert.sha256` (once, since every existing installation then needs a reinstall).
+2. the `PITWALL_KEYSTORE_FILE`, `PITWALL_KEYSTORE_PASSWORD`, `PITWALL_KEY_ALIAS`, and `PITWALL_KEY_PASSWORD` environment variables;
+3. the keystore shared by the TV apps, `~/.signing/babadogan-tv-release.p12` (alias `babadogan-tv`), whose password Gradle reads from the macOS Keychain item `babadogan-tv-release-keystore`.
+
+Without any of them, the build falls back to the local debug key and prints a warning. To package on another Mac, copy the shared keystore to the same place and add its password there with `security add-generic-password -a "$USER" -s babadogan-tv-release-keystore -T /usr/bin/security -w` (it asks for the password).
+
+Installed copies only accept an update signed with the same key, and the in-app update (About > Check for Updates) depends on it. `release-cert.sha256` holds the expected signing certificate; the packaging script compares every release against it and prints a **SIGNING KEY MISMATCH** warning when they differ. A build with a different key cannot update existing installations: on those devices the app must be uninstalled first and the new version installed again, which removes its data. After switching to a different key on purpose, update `release-cert.sha256` (once, since every existing installation then needs a reinstall).
 
 ---
 

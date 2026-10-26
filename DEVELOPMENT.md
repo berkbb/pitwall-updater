@@ -98,7 +98,7 @@ The JDK is intentionally not pinned in the repository. If you need a machine-spe
 
 ### Release Signing
 
-See the *Release Signing* section of the README. `keystore.properties`, `*.jks`, and `*.keystore` are git-ignored.
+See the *Release Signing* section of the README. `keystore.properties`, `*.jks`, `*.keystore`, and `*.p12` are git-ignored.
 
 ---
 
