@@ -44,6 +44,19 @@ class SelfUpdateCheckerTest {
     }
 
     @Test
+    fun theApkCarriesItsApiAssetAddressOnlyForThisRepository() {
+        val own = "https://api.github.com/repos/berkbb/pitwall-updater/releases/assets/7"
+        val json = org.json.JSONArray("""[
+            {"name":"pitwall-updater-v1.0.12-universal-release.apk","url":"$own","browser_download_url":"https://example.com/universal.apk","size":900000,"digest":"sha256:${"c".repeat(64)}"}]""")
+        val assets = ReleaseResolver.parseAssets(json, SELF_REPO)
+        assertEquals(ReleaseInfo("v1.0.12", "https://example.com/universal.apk", 900_000, "c".repeat(64), own), SelfUpdateChecker.selectApk("v1.0.12", assets, arrayOf("arm64-v8a")))
+
+        val foreign = org.json.JSONArray("""[
+            {"name":"pitwall-updater-v1.0.12-universal-release.apk","url":"https://api.github.com/repos/someone/pitwall-updater/releases/assets/7","browser_download_url":"https://example.com/universal.apk","size":900000}]""")
+        assertEquals(null, SelfUpdateChecker.selectApk("v1.0.12", ReleaseResolver.parseAssets(foreign, SELF_REPO), arrayOf("arm64-v8a"))?.apiUrl)
+    }
+
+    @Test
     fun missingTagIsUnavailable() {
         assertEquals(SelfUpdateStatus.Unavailable, SelfUpdateChecker.statusFor("", "1.0.7"))
     }

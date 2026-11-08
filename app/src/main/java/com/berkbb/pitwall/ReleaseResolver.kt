@@ -1,13 +1,22 @@
 package com.berkbb.pitwall
 
-const val F1TV_PACKAGE_NAME = "com.formulaone.production"
-const val UPSTREAM_RELEASES_URL = "https://api.github.com/repos/Alexvbp/f1tv-4k-patch/releases?per_page=20"
+import org.json.JSONArray
 
+const val F1TV_PACKAGE_NAME = "com.formulaone.production"
+const val UPSTREAM_REPO = "Alexvbp/f1tv-4k-patch"
+const val UPSTREAM_RELEASES_URL = "https://api.github.com/repos/$UPSTREAM_REPO/releases?per_page=20"
+
+/**
+ * One GitHub release asset. [apiUrl] is the same asset on api.github.com (the asset's `url` field),
+ * kept only for the expected repository; it is the fallback when the github.com download fails
+ * (on 2026-11-08 one GitHub region answered 504 for every release download while the API kept working).
+ */
 data class ReleaseAsset(
     val name: String,
     val downloadUrl: String,
     val size: Long,
-    val digest: String?
+    val digest: String?,
+    val apiUrl: String? = null
 )
 
 data class RawRelease(
@@ -21,7 +30,8 @@ data class ReleaseInfo(
     val tag: String,
     val downloadUrl: String,
     val size: Long,
-    val sha256: String?
+    val sha256: String?,
+    val apiUrl: String? = null
 )
 
 enum class UpdateStatus { NOT_INSTALLED, UPDATE_AVAILABLE, UP_TO_DATE }
@@ -59,6 +69,40 @@ object ReleaseResolver {
         return if (value.startsWith("sha256:") && hex.length == 64 && hex.all { it in "0123456789abcdef" }) hex else null
     }
 
+    /** The asset's api.github.com address, kept only when it belongs to [repo] ("owner/name"); anything else is null. */
+    fun apiAssetUrl(url: String?, repo: String): String? {
+        val prefix = "https://api.github.com/repos/$repo/releases/assets/"
+        return url?.trim()?.takeIf { it.startsWith(prefix) && it.length > prefix.length }
+    }
+
+    /** The `assets` array of a release reply; [repo] decides which API asset addresses are trusted. */
+    fun parseAssets(array: JSONArray?, repo: String): List<ReleaseAsset> {
+        if (array == null) return emptyList()
+        return (0 until array.length()).map { i ->
+            val asset = array.getJSONObject(i)
+            ReleaseAsset(
+                name = asset.optString("name", ""),
+                downloadUrl = asset.optString("browser_download_url", ""),
+                size = asset.optLong("size", 0L),
+                digest = if (asset.isNull("digest")) null else asset.optString("digest", ""),
+                apiUrl = apiAssetUrl(asset.optString("url", ""), repo)
+            )
+        }
+    }
+
+    /** The upstream releases list reply (an array of releases) as [RawRelease]s. */
+    fun parseReleases(array: JSONArray): List<RawRelease> {
+        return (0 until array.length()).map { i ->
+            val release = array.getJSONObject(i)
+            RawRelease(
+                tagName = release.optString("tag_name", ""),
+                isDraft = release.optBoolean("draft", false),
+                isPrerelease = release.optBoolean("prerelease", false),
+                assets = parseAssets(release.optJSONArray("assets"), UPSTREAM_REPO)
+            )
+        }
+    }
+
     /** Picks the newest stable release that ships an .apkm asset. */
     fun selectLatestStable(releases: List<RawRelease>): ReleaseInfo? {
         return releases
@@ -67,7 +111,7 @@ object ReleaseResolver {
             .mapNotNull { release ->
                 val asset = release.assets.firstOrNull { it.name.endsWith(".apkm") && it.downloadUrl.isNotBlank() }
                     ?: return@mapNotNull null
-                ReleaseInfo(release.tagName.trim(), asset.downloadUrl, asset.size, parseSha256(asset.digest))
+                ReleaseInfo(release.tagName.trim(), asset.downloadUrl, asset.size, parseSha256(asset.digest), asset.apiUrl)
             }
             .sortedWith { a, b -> compareVersions(parseVersion(b.tag), parseVersion(a.tag)) }
             .firstOrNull()

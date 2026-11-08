@@ -20,6 +20,43 @@ class ReleaseResolverTest {
         )
 
     // ==========================================
+    // 0. Asset API address (fallback download)
+    // ==========================================
+
+    private val apiUrl = "https://api.github.com/repos/Alexvbp/f1tv-4k-patch/releases/assets/4242"
+
+    @Test
+    fun testApiAssetUrlKeepsOnlyTheRepositorysOwnAssets() {
+        assertEquals(apiUrl, ReleaseResolver.apiAssetUrl(apiUrl, UPSTREAM_REPO))
+        assertNull(ReleaseResolver.apiAssetUrl(apiUrl, SELF_REPO))
+        assertNull(ReleaseResolver.apiAssetUrl("https://api.github.com/repos/someone/f1tv-4k-patch/releases/assets/1", UPSTREAM_REPO))
+        assertNull(ReleaseResolver.apiAssetUrl("http://api.github.com/repos/Alexvbp/f1tv-4k-patch/releases/assets/1", UPSTREAM_REPO))
+        assertNull(ReleaseResolver.apiAssetUrl("https://api.example.com/repos/Alexvbp/f1tv-4k-patch/releases/assets/1", UPSTREAM_REPO))
+        assertNull(ReleaseResolver.apiAssetUrl("https://api.github.com/repos/Alexvbp/f1tv-4k-patch/releases/assets/", UPSTREAM_REPO))
+        assertNull(ReleaseResolver.apiAssetUrl("", UPSTREAM_REPO))
+        assertNull(ReleaseResolver.apiAssetUrl(null, UPSTREAM_REPO))
+    }
+
+    @Test
+    fun testParseReleasesKeepsTheApiAssetAddressNextToTheDownloadAddress() {
+        val json = org.json.JSONArray("""[{"tag_name":"v3.0.49.4","draft":false,"prerelease":false,"assets":[
+            {"name":"f1tv-uhd-patched.apkm","url":"$apiUrl","browser_download_url":"https://github.com/Alexvbp/f1tv-4k-patch/releases/download/v3.0.49.4/f1tv-uhd-patched.apkm","size":48000000,"digest":"sha256:$sha"},
+            {"name":"notes.txt","url":"https://api.github.com/repos/someone/else/releases/assets/1","browser_download_url":"https://x/notes.txt","size":10}]}]""")
+        val releases = ReleaseResolver.parseReleases(json)
+        assertEquals(
+            listOf(
+                ReleaseAsset("f1tv-uhd-patched.apkm", "https://github.com/Alexvbp/f1tv-4k-patch/releases/download/v3.0.49.4/f1tv-uhd-patched.apkm", 48_000_000L, "sha256:$sha", apiUrl),
+                ReleaseAsset("notes.txt", "https://x/notes.txt", 10L, null, null)
+            ),
+            releases.single().assets
+        )
+        assertEquals(
+            ReleaseInfo("v3.0.49.4", "https://github.com/Alexvbp/f1tv-4k-patch/releases/download/v3.0.49.4/f1tv-uhd-patched.apkm", 48_000_000L, sha, apiUrl),
+            ReleaseResolver.selectLatestStable(releases)
+        )
+    }
+
+    // ==========================================
     // 1. Version parsing & comparison
     // ==========================================
 

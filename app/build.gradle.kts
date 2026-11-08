@@ -131,4 +131,5 @@ dependencies {
 
     // Testing
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303") // the real org.json for JVM tests; android.jar only stubs it
 }

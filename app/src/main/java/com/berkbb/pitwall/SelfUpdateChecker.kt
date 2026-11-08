@@ -1,13 +1,13 @@
 package com.berkbb.pitwall
 
-import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 
-const val SELF_RELEASE_API_URL = "https://api.github.com/repos/berkbb/pitwall-updater/releases/latest"
-const val SELF_RELEASES_PAGE = "github.com/berkbb/pitwall-updater/releases"
+const val SELF_REPO = "berkbb/pitwall-updater"
+const val SELF_RELEASE_API_URL = "https://api.github.com/repos/$SELF_REPO/releases/latest"
+const val SELF_RELEASES_PAGE = "github.com/$SELF_REPO/releases"
 
 /** Result of checking Pitwall Updater's own GitHub releases (not F1 TV's). */
 sealed interface SelfUpdateStatus {
@@ -46,7 +46,7 @@ object SelfUpdateChecker {
                 HttpURLConnection.HTTP_OK -> {
                     val json = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
                     val tag = json.optString("tag_name", "")
-                    val apk = selectApk(tag, parseAssets(json.optJSONArray("assets")), android.os.Build.SUPPORTED_ABIS)
+                    val apk = selectApk(tag, ReleaseResolver.parseAssets(json.optJSONArray("assets"), SELF_REPO), android.os.Build.SUPPORTED_ABIS)
                     statusFor(tag, currentVersion, apk)
                 }
                 HttpURLConnection.HTTP_NOT_FOUND -> SelfUpdateStatus.Unavailable
@@ -54,20 +54,6 @@ object SelfUpdateChecker {
             }
         } finally {
             connection.disconnect()
-        }
-    }
-
-    /** Pure comparison of a release tag ("v1.0.8") with the installed version name ("1.0.7"). */
-    private fun parseAssets(array: JSONArray?): List<ReleaseAsset> {
-        if (array == null) return emptyList()
-        return (0 until array.length()).map { i ->
-            val asset = array.getJSONObject(i)
-            ReleaseAsset(
-                name = asset.optString("name", ""),
-                downloadUrl = asset.optString("browser_download_url", ""),
-                size = asset.optLong("size", 0L),
-                digest = if (asset.isNull("digest")) null else asset.optString("digest", "")
-            )
         }
     }
 
@@ -83,7 +69,7 @@ object SelfUpdateChecker {
             .firstOrNull()
             ?: apks.firstOrNull { it.name.endsWith("-universal-release.apk") }
             ?: return null
-        return ReleaseInfo(tag.trim(), asset.downloadUrl, asset.size, ReleaseResolver.parseSha256(asset.digest))
+        return ReleaseInfo(tag.trim(), asset.downloadUrl, asset.size, ReleaseResolver.parseSha256(asset.digest), asset.apiUrl)
     }
 
     fun statusFor(tag: String, currentVersion: String, apk: ReleaseInfo? = null): SelfUpdateStatus {

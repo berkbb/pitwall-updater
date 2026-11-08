@@ -21,7 +21,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
@@ -133,51 +132,24 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    /** Downloads into a .part file and keeps it only when it matches the release digest/size. */
+    /** Downloads into a .part file and keeps it only when it matches the release digest/size (see [ReleaseDownloader]). */
     private suspend fun downloadSelfApk(apk: ReleaseInfo, target: File): Boolean {
         if (ApkmCache.isValid(target, apk)) return true
-        val part = ApkmCache.partialFileFor(target)
-        var conn: HttpURLConnection? = null
-        try {
-            conn = (URL(apk.downloadUrl).openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                instanceFollowRedirects = true
-                setRequestProperty("User-Agent", "PitwallUpdater/${BuildConfig.VERSION_NAME}")
-                connectTimeout = 15000
-                readTimeout = 30000
+        val context = currentCoroutineContext()
+        return try {
+            ReleaseDownloader.download(
+                release = apk,
+                target = target,
+                userAgent = "PitwallUpdater/${BuildConfig.VERSION_NAME}",
+                onChunk = { context.ensureActive() }
+            ) { progress ->
+                _uiState.update { it.copy(selfInstall = SelfInstallState.Downloading(progress)) }
             }
-            if (conn.responseCode != HttpURLConnection.HTTP_OK) return false
-            val total = conn.contentLengthLong.takeIf { it > 0 } ?: apk.size
-            var done = 0L
-            var lastProgress = -1
-            conn.inputStream.use { input ->
-                FileOutputStream(part).use { output ->
-                    val buffer = ByteArray(64 * 1024)
-                    while (true) {
-                        currentCoroutineContext().ensureActive()
-                        val read = input.read(buffer)
-                        if (read == -1) break
-                        output.write(buffer, 0, read)
-                        done += read
-                        val progress = if (total > 0) ((done * 100) / total).toInt().coerceIn(0, 100) else 0
-                        if (progress != lastProgress) {
-                            lastProgress = progress
-                            _uiState.update { it.copy(selfInstall = SelfInstallState.Downloading(progress)) }
-                        }
-                    }
-                }
-            }
-            if (!ApkmCache.isValid(part, apk)) return false
-            target.delete()
-            return part.renameTo(target)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             e.printStackTrace()
-            return false
-        } finally {
-            conn?.disconnect()
-            if (part.exists()) part.delete()
+            false
         }
     }
 
@@ -347,31 +319,9 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
             val code = connection.responseCode
             if (code != HttpURLConnection.HTTP_OK) throw IOException("HTTP $code")
             val jsonStr = connection.inputStream.bufferedReader().use { it.readText() }
-            ReleaseResolver.selectLatestStable(parseReleases(JSONArray(jsonStr)))
+            ReleaseResolver.selectLatestStable(ReleaseResolver.parseReleases(JSONArray(jsonStr)))
         } finally {
             connection.disconnect()
-        }
-    }
-
-    private fun parseReleases(array: JSONArray): List<RawRelease> {
-        return (0 until array.length()).map { i ->
-            val release = array.getJSONObject(i)
-            val assetsJson = release.optJSONArray("assets") ?: JSONArray()
-            val assets = (0 until assetsJson.length()).map { j ->
-                val asset = assetsJson.getJSONObject(j)
-                ReleaseAsset(
-                    name = asset.optString("name", ""),
-                    downloadUrl = asset.optString("browser_download_url", ""),
-                    size = asset.optLong("size", 0L),
-                    digest = if (asset.isNull("digest")) null else asset.optString("digest", "")
-                )
-            }
-            RawRelease(
-                tagName = release.optString("tag_name", ""),
-                isDraft = release.optBoolean("draft", false),
-                isPrerelease = release.optBoolean("prerelease", false),
-                assets = assets
-            )
         }
     }
 
@@ -470,63 +420,33 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    /** Downloads into a .part file, verifies it against the release digest/size and only then publishes it. */
+    /** Downloads into a .part file, verifies it against the release digest/size and only then publishes it (see [ReleaseDownloader]). */
     private suspend fun download(release: ReleaseInfo, target: File): Boolean {
-        val part = ApkmCache.partialFileFor(target)
-        var conn: HttpURLConnection? = null
-        try {
-            conn = (URL(release.downloadUrl).openConnection() as HttpURLConnection).also { activeConnection = it }.apply {
-                requestMethod = "GET"
-                instanceFollowRedirects = true
-                setRequestProperty("User-Agent", "PitwallUpdater/${BuildConfig.VERSION_NAME}")
-                connectTimeout = 15000
-                readTimeout = 30000
-            }
-            if (conn.responseCode != HttpURLConnection.HTTP_OK) return false
-
-            val totalLength = conn.contentLengthLong.takeIf { it > 0 } ?: release.size
-            var downloaded = 0L
-            var lastProgress = -1
-
-            conn.inputStream.use { input ->
-                FileOutputStream(part).use { output ->
-                    val buffer = ByteArray(64 * 1024)
-                    while (true) {
-                        currentCoroutineContext().ensureActive()
-                        val read = input.read(buffer)
-                        if (read == -1) break
-                        output.write(buffer, 0, read)
-                        downloaded += read
-                        if (totalLength > 0) {
-                            val progress = ((downloaded * 100) / totalLength).toInt().coerceIn(0, 100)
-                            // Yalnızca yüzde değiştiğinde UI'ı güncelle
-                            if (progress != lastProgress) {
-                                lastProgress = progress
-                                _uiState.update {
-                                    it.copy(
-                                        downloadProgress = progress,
-                                        statusResId = R.string.status_downloading,
-                                        statusArg = progress
-                                    )
-                                }
-                            }
-                        }
-                    }
+        val context = currentCoroutineContext()
+        return try {
+            ReleaseDownloader.download(
+                release = release,
+                target = target,
+                userAgent = "PitwallUpdater/${BuildConfig.VERSION_NAME}",
+                onConnection = { activeConnection = it },
+                onChunk = { context.ensureActive() }
+            ) { progress ->
+                // Yalnızca yüzde değiştiğinde UI'ı güncelle
+                _uiState.update {
+                    it.copy(
+                        downloadProgress = progress,
+                        statusResId = R.string.status_downloading,
+                        statusArg = progress
+                    )
                 }
             }
-
-            if (!ApkmCache.isValid(part, release)) return false
-            target.delete()
-            return part.renameTo(target)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             e.printStackTrace()
-            return false
+            false
         } finally {
             activeConnection = null
-            conn?.disconnect()
-            if (part.exists()) part.delete()
         }
     }
 
