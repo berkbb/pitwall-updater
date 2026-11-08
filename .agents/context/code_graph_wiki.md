@@ -16,7 +16,11 @@
 
 ### 3a. `ReleaseResolver.kt`
 - **Role:** Pure (Android-free) release selection, numeric version comparison, update status evaluation, tag-bound cache naming.
-- **Key Symbols:** `ReleaseResolver.selectLatestStable`, `parseVersion`, `compareVersions`, `evaluate`, `F1TV_PACKAGE_NAME`, `UPSTREAM_RELEASES_URL`.
+- **Key Symbols:** `ReleaseResolver.selectLatestStable`, `parseVersion`, `compareVersions`, `evaluate`, `parseAssets`, `parseReleases`, `apiAssetUrl`, `F1TV_PACKAGE_NAME`, `UPSTREAM_REPO`, `UPSTREAM_RELEASES_URL`.
+
+### 3a-bis. `ReleaseDownloader.kt`
+- **Role:** Android-free download of a release file into its `.part` file with the api.github.com asset-address fallback after an I/O error or 5xx, verified through `ApkmCache.isValid`; the connection opener is injectable for tests (`ReleaseDownloaderTest`).
+- **Key Symbols:** `ReleaseDownloader.download`.
 
 ### 3b. `ApkmCache.kt`
 - **Role:** Tag-bound `.apkm` cache with SHA-256 / exact-size verification and pruning of stale bundles.
