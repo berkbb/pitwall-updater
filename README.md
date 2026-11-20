@@ -118,7 +118,7 @@ Installed copies only accept an update signed with the same key, and the in-app 
 ### 📍 Compiled APK Location
 
 Upon build completion, the generated release APK file is located at:
-- **Release APK:** `app/build/outputs/apk/release/pitwall-updater-v1.1.0-universal-release.apk`
+- **Release APK:** `app/build/outputs/apk/release/pitwall-updater-v1.1.1-universal-release.apk`
 
 ### 📦 Release Packaging Script
 
@@ -142,7 +142,7 @@ Pitwall Updater is pure Kotlin; its only native code is Compose's small `android
 ### 📦 Initial TV Installation Methods
 
 #### 🔹 Method 1: USB Flash Drive or File Manager (No Developer Mode Required - Easy)
-1. Copy `pitwall-updater-v1.1.0-universal-release.apk` to a USB flash drive or transfer via **Send Files to TV** / **X-plore**.
+1. Copy `pitwall-updater-v1.1.1-universal-release.apk` to a USB flash drive or transfer via **Send Files to TV** / **X-plore**.
 2. Open the file manager on your TV and install the APK.
 
 #### 🔹 Method 2: Network ADB Sideloading (Requires TV Developer Options)
@@ -152,7 +152,7 @@ Pitwall Updater is pure Kotlin; its only native code is Compose's small `android
 
 ```bash
 adb connect [TV_IP_ADDRESS]:5555
-adb install -r dist/pitwall-updater-v1.1.0-universal-release.apk
+adb install -r dist/pitwall-updater-v1.1.1-universal-release.apk
 ```
 
 ---

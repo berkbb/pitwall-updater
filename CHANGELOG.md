@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [1.1.1] - 2026-11-20
 
 ### Fixed
 - **About window layout on 1080p TVs:** compacted the About info cards and action bar into an intrinsic-height 3-row layout so all cards, the disclaimer, and all 4 buttons fit cleanly inside a 960×540 dp TV screen without clipping, and added a visible vertical scrollbar with D-Pad Up/Down scrolling when content overflows on smaller displays or larger font scales.
