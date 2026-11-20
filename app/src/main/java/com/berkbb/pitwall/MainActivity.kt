@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,7 +22,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import kotlinx.coroutines.launch
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.onPreviewKeyEvent
@@ -38,7 +43,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -377,9 +384,13 @@ fun AboutWindow(
     onClose: () -> Unit
 ) {
     val closeFocusRequester = remember { FocusRequester() }
+    val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
     var showLicenseDialog by remember { mutableStateOf(false) }
     val storage = remember { readDeviceStorage() }
     val displayLocale = LocalConfiguration.current.locales[0] ?: Locale.ROOT
+    val cardPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
+    val buttonPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
 
     Dialog(
         onDismissRequest = onClose,
@@ -392,21 +403,32 @@ fun AboutWindow(
             modifier = Modifier
                 .fillMaxSize()
                 .background(BackgroundDark)
-                .padding(horizontal = 48.dp, vertical = 28.dp)
+                .padding(horizontal = 48.dp, vertical = 24.dp)
+                .onPreviewKeyEvent { event ->
+                    val step = when (event.key) {
+                        Key.DirectionDown, Key.PageDown -> if (scrollState.canScrollForward) 220f else null
+                        Key.DirectionUp, Key.PageUp -> if (scrollState.canScrollBackward) -220f else null
+                        else -> null
+                    } ?: return@onPreviewKeyEvent false
+                    if (event.type == KeyEventType.KeyDown) {
+                        scope.launch { scrollState.animateScrollBy(step) }
+                    }
+                    true
+                }
         ) {
             // Title bar
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
                         .width(6.dp)
-                        .height(32.dp)
+                        .height(28.dp)
                         .background(AccentColor, RoundedCornerShape(3.dp))
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 Text(
                     text = stringResource(R.string.dialog_about_title),
                     color = TextWhite,
-                    fontSize = 32.sp,
+                    fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
                     modifier = Modifier.weight(1f)
@@ -417,93 +439,157 @@ fun AboutWindow(
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            Column(
+            Box(
                 modifier = Modifier
                     .weight(1f)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .fillMaxWidth()
+                    .verticalScrollbar(scrollState)
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    InfoCard(
-                        title = stringResource(R.string.dialog_developer_label).trimEnd(':'),
-                        value = stringResource(R.string.dialog_developer_name),
-                        height = 88.dp,
-                        modifier = Modifier.weight(1f)
-                    )
-                    InfoCard(
-                        title = stringResource(R.string.dialog_website_label).trimEnd(':'),
-                        value = stringResource(R.string.dialog_website_url),
-                        valueColor = Color(0xFF64B5F6),
-                        height = 88.dp,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    InfoCard(
-                        title = stringResource(R.string.dialog_license_label).trimEnd(':'),
-                        value = stringResource(R.string.dialog_license_name),
-                        valueColor = Color(0xFF81C784),
-                        height = 88.dp,
-                        modifier = Modifier.weight(1f)
-                    )
-                    InfoCard(
-                        title = stringResource(R.string.dialog_patch_label).trimEnd(':'),
-                        value = stringResource(R.string.dialog_patch_author),
-                        height = 88.dp,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    val manufacturer = android.os.Build.MANUFACTURER.replaceFirstChar { it.uppercase(Locale.ROOT) }
-                    val model = android.os.Build.MODEL
-                    val product = android.os.Build.PRODUCT
-                    val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "arm"
-                    InfoCard(
-                        title = stringResource(R.string.dialog_version_label).trimEnd(':'),
-                        value = "v${BuildConfig.VERSION_NAME}",
-                        valueColor = Color(0xFFB39DDB),
-                        height = 88.dp,
-                        modifier = Modifier.weight(1f)
-                    )
-                    if (storage != null) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState)
+                        .padding(end = if (scrollState.maxValue > 0) 14.dp else 0.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         InfoCard(
-                            title = stringResource(R.string.dialog_storage_label).trimEnd(':'),
-                            value = stringResource(
-                                R.string.dialog_storage_value,
-                                StorageFormat.formatBytes(storage.freeBytes, displayLocale),
-                                StorageFormat.formatBytes(storage.totalBytes, displayLocale),
-                                StorageFormat.usedPercent(storage.freeBytes, storage.totalBytes)
-                            ),
-                            height = 88.dp,
-                            modifier = Modifier.weight(1.3f)
+                            title = stringResource(R.string.dialog_developer_label).trimEnd(':'),
+                            value = stringResource(R.string.dialog_developer_name),
+                            height = null,
+                            minHeight = 68.dp,
+                            contentPadding = cardPadding,
+                            titleFontSize = 12.sp,
+                            valueFontSize = 16.sp,
+                            modifier = Modifier
+                                .weight(0.8f)
+                                .fillMaxHeight()
+                        )
+                        InfoCard(
+                            title = stringResource(R.string.dialog_version_label).trimEnd(':'),
+                            value = "v${BuildConfig.VERSION_NAME}",
+                            valueColor = Color(0xFFB39DDB),
+                            height = null,
+                            minHeight = 68.dp,
+                            contentPadding = cardPadding,
+                            titleFontSize = 12.sp,
+                            valueFontSize = 16.sp,
+                            modifier = Modifier
+                                .weight(0.7f)
+                                .fillMaxHeight()
+                        )
+                        InfoCard(
+                            title = stringResource(R.string.dialog_website_label).trimEnd(':'),
+                            value = stringResource(R.string.dialog_website_url),
+                            valueColor = Color(0xFF64B5F6),
+                            height = null,
+                            minHeight = 68.dp,
+                            contentPadding = cardPadding,
+                            titleFontSize = 12.sp,
+                            valueFontSize = 16.sp,
+                            modifier = Modifier
+                                .weight(1.5f)
+                                .fillMaxHeight()
                         )
                     }
-                    InfoCard(
-                        title = stringResource(R.string.dialog_device_label).trimEnd(':'),
-                        value = stringResource(R.string.header_subtitle, manufacturer, model, product, abi),
-                        height = 88.dp,
-                        modifier = Modifier.weight(1.7f)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        InfoCard(
+                            title = stringResource(R.string.dialog_license_label).trimEnd(':'),
+                            value = stringResource(R.string.dialog_license_name),
+                            valueColor = Color(0xFF81C784),
+                            height = null,
+                            minHeight = 68.dp,
+                            contentPadding = cardPadding,
+                            titleFontSize = 12.sp,
+                            valueFontSize = 16.sp,
+                            modifier = Modifier
+                                .weight(1.3f)
+                                .fillMaxHeight()
+                        )
+                        InfoCard(
+                            title = stringResource(R.string.dialog_patch_label).trimEnd(':'),
+                            value = stringResource(R.string.dialog_patch_author),
+                            height = null,
+                            minHeight = 68.dp,
+                            contentPadding = cardPadding,
+                            titleFontSize = 12.sp,
+                            valueFontSize = 16.sp,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                        )
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        val manufacturer = android.os.Build.MANUFACTURER.replaceFirstChar { it.uppercase(Locale.ROOT) }
+                        val model = android.os.Build.MODEL
+                        val product = android.os.Build.PRODUCT
+                        val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "arm"
+                        if (storage != null) {
+                            InfoCard(
+                                title = stringResource(R.string.dialog_storage_label).trimEnd(':'),
+                                value = stringResource(
+                                    R.string.dialog_storage_value,
+                                    StorageFormat.formatBytes(storage.freeBytes, displayLocale),
+                                    StorageFormat.formatBytes(storage.totalBytes, displayLocale),
+                                    StorageFormat.usedPercent(storage.freeBytes, storage.totalBytes)
+                                ),
+                                height = null,
+                                minHeight = 68.dp,
+                                contentPadding = cardPadding,
+                                titleFontSize = 12.sp,
+                                valueFontSize = 16.sp,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                            )
+                        }
+                        InfoCard(
+                            title = stringResource(R.string.dialog_device_label).trimEnd(':'),
+                            value = stringResource(R.string.header_subtitle, manufacturer, model, product, abi),
+                            height = null,
+                            minHeight = 68.dp,
+                            contentPadding = cardPadding,
+                            titleFontSize = 12.sp,
+                            valueFontSize = 16.sp,
+                            modifier = Modifier
+                                .weight(1.3f)
+                                .fillMaxHeight()
+                        )
+                    }
+                    Text(
+                        text = stringResource(R.string.dialog_disclaimer),
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                        color = TextGray,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 2.dp)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Text(
-                text = stringResource(R.string.dialog_disclaimer),
-                fontSize = 13.sp,
-                lineHeight = 18.sp,
-                color = TextGray,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 val checkingSelf = selfUpdate is SelfUpdateStatus.Checking
@@ -511,6 +597,9 @@ fun AboutWindow(
                     text = stringResource(R.string.btn_auto_check, stringResource(autoCheckInterval.labelRes)),
                     backgroundColor = CardDark,
                     focusedBorderColor = Color(0xFFE0E0E0),
+                    height = 46.dp,
+                    fontSize = 14.sp,
+                    contentPadding = buttonPadding,
                     onClick = onCycleAutoCheck
                 )
                 TvActionButton(
@@ -518,18 +607,27 @@ fun AboutWindow(
                     backgroundColor = CardDark,
                     focusedBorderColor = Color(0xFFE0E0E0),
                     enabled = !checkingSelf,
+                    height = 46.dp,
+                    fontSize = 14.sp,
+                    contentPadding = buttonPadding,
                     onClick = onCheckSelfUpdate
                 )
                 TvActionButton(
                     text = stringResource(R.string.btn_view_license),
                     backgroundColor = CardDark,
                     focusedBorderColor = Color(0xFFE0E0E0),
+                    height = 46.dp,
+                    fontSize = 14.sp,
+                    contentPadding = buttonPadding,
                     onClick = { showLicenseDialog = true }
                 )
                 TvActionButton(
                     text = stringResource(R.string.btn_close),
                     backgroundColor = AccentColor,
                     focusedBorderColor = Color(0xFFFFD700),
+                    height = 46.dp,
+                    fontSize = 14.sp,
+                    contentPadding = buttonPadding,
                     modifier = Modifier.focusRequester(closeFocusRequester),
                     onClick = onClose
                 )
@@ -806,6 +904,38 @@ private fun CloseIconButton(contentDescription: String, onClick: () -> Unit) {
     }
 }
 
+private fun Modifier.verticalScrollbar(
+    state: ScrollState,
+    width: Dp = 4.dp
+): Modifier = drawWithContent {
+    drawContent()
+    val maxScroll = state.maxValue
+    val trackHeight = size.height
+    if (maxScroll > 0 && trackHeight > 0f) {
+        val totalHeight = trackHeight + maxScroll
+        val thumbHeight = (trackHeight * (trackHeight / totalHeight))
+            .coerceAtLeast(24.dp.toPx())
+            .coerceAtMost(trackHeight)
+        val progress = state.value.toFloat() / maxScroll.toFloat()
+        val thumbOffsetY = (trackHeight - thumbHeight) * progress
+        val barWidth = width.toPx()
+        val x = size.width - barWidth
+        val radius = CornerRadius(barWidth / 2f, barWidth / 2f)
+        drawRoundRect(
+            color = Color.White.copy(alpha = 0.12f),
+            topLeft = Offset(x, 0f),
+            size = Size(barWidth, trackHeight),
+            cornerRadius = radius
+        )
+        drawRoundRect(
+            color = AccentColor.copy(alpha = 0.85f),
+            topLeft = Offset(x, thumbOffsetY),
+            size = Size(barWidth, thumbHeight),
+            cornerRadius = radius
+        )
+    }
+}
+
 @Composable
 fun InfoCard(
     title: String,
@@ -813,25 +943,33 @@ fun InfoCard(
     modifier: Modifier = Modifier,
     valueColor: Color = TextWhite,
     isLoading: Boolean = false,
-    height: Dp = 140.dp
+    height: Dp? = 140.dp,
+    minHeight: Dp = 0.dp,
+    contentPadding: PaddingValues = PaddingValues(20.dp),
+    titleFontSize: TextUnit = 14.sp,
+    valueFontSize: TextUnit = 20.sp
 ) {
     Card(
-        modifier = modifier.height(height),
+        modifier = modifier.then(
+            if (height != null) Modifier.height(height) else Modifier.heightIn(min = minHeight)
+        ),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = CardDark)
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+                .then(if (height != null) Modifier.fillMaxSize() else Modifier.fillMaxWidth())
+                .padding(contentPadding),
+            verticalArrangement = if (height != null) Arrangement.SpaceBetween else Arrangement.spacedBy(6.dp)
         ) {
             Text(
                 text = title,
                 color = TextGray,
-                fontSize = 14.sp,
+                fontSize = titleFontSize,
                 fontWeight = FontWeight.SemiBold,
-                letterSpacing = 1.sp
+                letterSpacing = 1.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -847,9 +985,11 @@ fun InfoCard(
                 Text(
                     text = value,
                     color = valueColor,
-                    fontSize = 20.sp,
+                    fontSize = valueFontSize,
+                    lineHeight = valueFontSize * 1.25f,
                     fontWeight = FontWeight.Bold,
-                    maxLines = 2
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -864,6 +1004,9 @@ fun TvActionButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     isLoading: Boolean = false,
+    height: Dp = 52.dp,
+    fontSize: TextUnit = 16.sp,
+    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     onClick: () -> Unit
 ) {
     // Button zaten odaklanabilir; ek .focusable() ikinci bir odak durağı yaratıyordu
@@ -875,6 +1018,7 @@ fun TvActionButton(
         enabled = enabled,
         interactionSource = interactionSource,
         shape = RoundedCornerShape(8.dp),
+        contentPadding = contentPadding,
         colors = ButtonDefaults.buttonColors(
             containerColor = if (isFocused) focusedBorderColor else backgroundColor,
             contentColor = if (isFocused) BackgroundDark else TextWhite,
@@ -882,7 +1026,7 @@ fun TvActionButton(
             disabledContentColor = TextWhite.copy(alpha = 0.6f)
         ),
         modifier = modifier
-            .height(52.dp)
+            .height(height)
             .then(
                 if (isFocused) Modifier.border(3.dp, focusedBorderColor, RoundedCornerShape(8.dp))
                 else Modifier
@@ -902,8 +1046,11 @@ fun TvActionButton(
             }
             Text(
                 text = text,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
+                fontSize = fontSize,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
