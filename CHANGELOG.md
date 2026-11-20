@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [1.1.0] - 2026-11-20
 
 ### Added
 - **TV storage info & configurable self-update interval in About:** About now shows free and total internal TV storage (`StatFs`) alongside a toggle button to cycle startup self-update checks (`Off` / `Daily` / `Weekly`); pressing `Menu` or `Info` on the remote opens About from the main screen.

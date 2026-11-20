@@ -7,7 +7,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-val appVersionName = "1.0.11"
+val appVersionName = "1.1.0"
 
 // Release signing, first match wins: keystore.properties (git-ignored), PITWALL_* environment
 // variables, or the TV apps' shared keystore ~/.signing/babadogan-tv-release.p12, whose password
@@ -41,7 +41,7 @@ android {
         applicationId = "com.berkbb.pitwall"
         minSdk = 26
         targetSdk = 35
-        versionCode = 12
+        versionCode = 13
         versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
