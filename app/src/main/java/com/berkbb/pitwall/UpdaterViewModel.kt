@@ -42,7 +42,8 @@ data class UpdaterUiState(
     val selfUpdate: SelfUpdateStatus = SelfUpdateStatus.Idle,
     // Set by a manual check from About: shown in a result window until dismissed
     val selfUpdateResult: SelfUpdateStatus? = null,
-    val selfInstall: SelfInstallState = SelfInstallState.Idle
+    val selfInstall: SelfInstallState = SelfInstallState.Idle,
+    val autoCheckInterval: UpdateCheckInterval = UpdateCheckInterval.DAILY
 )
 
 class UpdaterViewModel(application: Application) : AndroidViewModel(application) {
@@ -58,10 +59,28 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
     private val app: Application get() = getApplication()
 
     init {
+        val prefs = app.getSharedPreferences(SelfUpdateRestartReceiver.PREFS, android.content.Context.MODE_PRIVATE)
+        val interval = UpdateCheckInterval.fromName(prefs.getString(SelfUpdateRestartReceiver.KEY_AUTO_CHECK_INTERVAL, null))
+        val lastCheckedMs = prefs.getLong(SelfUpdateRestartReceiver.KEY_LAST_CHECKED_MS, 0L)
+        _uiState.update { it.copy(autoCheckInterval = interval) }
+
+        viewModelScope.launch(Dispatchers.IO) { SelfUpdateChecker.cleanCachedApks(app.cacheDir) }
         refreshInstalledState()
         checkForUpdates()
         observeInstallEvents()
-        checkSelfUpdate(manual = false)
+        if (UpdateSchedule.shouldCheck(interval, lastCheckedMs, System.currentTimeMillis())) {
+            checkSelfUpdate(manual = false)
+        }
+    }
+
+    fun cycleAutoCheckInterval() {
+        val next = _uiState.value.autoCheckInterval.next()
+        app.getSharedPreferences(SelfUpdateRestartReceiver.PREFS, android.content.Context.MODE_PRIVATE)
+            .edit().putString(SelfUpdateRestartReceiver.KEY_AUTO_CHECK_INTERVAL, next.name).apply()
+        _uiState.update { it.copy(autoCheckInterval = next) }
+        if (next != UpdateCheckInterval.OFF && _uiState.value.selfUpdate is SelfUpdateStatus.Idle) {
+            checkSelfUpdate(manual = false)
+        }
     }
 
     /**
@@ -79,6 +98,10 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
                     if (e is CancellationException) throw e
                     SelfUpdateStatus.Failed
                 }
+            }
+            if (status !is SelfUpdateStatus.Failed) {
+                app.getSharedPreferences(SelfUpdateRestartReceiver.PREFS, android.content.Context.MODE_PRIVATE)
+                    .edit().putLong(SelfUpdateRestartReceiver.KEY_LAST_CHECKED_MS, System.currentTimeMillis()).apply()
             }
             _uiState.update {
                 it.copy(selfUpdate = status, selfUpdateResult = if (manual) status else it.selfUpdateResult)

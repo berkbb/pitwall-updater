@@ -12,10 +12,13 @@ class SelfUpdateRestartReceiver : BroadcastReceiver() {
     companion object {
         const val PREFS = "self_update"
         const val KEY_PENDING = "restart_after_update"
+        const val KEY_AUTO_CHECK_INTERVAL = "auto_check_interval"
+        const val KEY_LAST_CHECKED_MS = "last_checked_ms"
     }
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_MY_PACKAGE_REPLACED) return
+        SelfUpdateChecker.cleanCachedApks(context.cacheDir)
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         if (!prefs.getBoolean(KEY_PENDING, false)) return
         prefs.edit().remove(KEY_PENDING).apply()

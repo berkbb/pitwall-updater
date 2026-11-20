@@ -9,11 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- **Downloads during a GitHub regional outage:** on 2026-11-08 one GitHub region answered 504 for every `github.com/…/releases/download/…` address for hours while `api.github.com` kept working, so neither the F1 TV bundle nor the self-update could be downloaded. When the github.com download fails with an I/O error or a 5xx answer, both downloads now fetch the same asset once more from its `api.github.com/repos/<owner>/<repo>/releases/assets/<id>` address (`Accept: application/octet-stream`, only for the expected repository); the SHA-256 (or size) check runs on whichever download succeeded, a 404 is still a plain failure, and a cancelled download is not retried.
+### Added
+- **TV storage info & configurable self-update interval in About:** About now shows free and total internal TV storage (`StatFs`) alongside a toggle button to cycle startup self-update checks (`Off` / `Daily` / `Weekly`); pressing `Menu` or `Info` on the remote opens About from the main screen.
 
 ### Changed
+- **Cached self-update APK cleanup & `Locale.ROOT` hygiene:** stale `pitwall-updater-*.apk` and `.apk.part` files in `cacheDir` are cleaned on startup and after an update; locale-independent lowercasing, uppercasing, and hex formatting now specify `Locale.ROOT`.
 - **Single Universal APK:** Release packaging now produces only `pitwall-updater-v<version>-universal-release.apk`. The app's only native code is Compose's `androidx.graphics.path` (about 10 KB per ABI), so the per-ABI `arm64` / `arm32` / `x64` APKs saved only about 27 KB each. Older installs keep updating: their self-update falls back to the universal APK when no per-ABI APK is published.
+
+### Fixed
+- **Downloads during a GitHub regional outage:** on 2026-11-08 one GitHub region answered 504 for every `github.com/…/releases/download/…` address for hours while `api.github.com` kept working, so neither the F1 TV bundle nor the self-update could be downloaded. When the github.com download fails with an I/O error or a 5xx answer, both downloads now fetch the same asset once more from its `api.github.com/repos/<owner>/<repo>/releases/assets/<id>` address (`Accept: application/octet-stream`, only for the expected repository); the SHA-256 (or size) check runs on whichever download succeeded, a 404 is still a plain failure, and a cancelled download is not retried.
 
 ### Security
 - **Release signing off the debug keystore:** without a configured keystore, releases fell back to `~/.android/debug.keystore`, whose password is public. Releases now use the TV apps' shared keystore `~/.signing/babadogan-tv-release.p12` (same certificate, so installed TVs keep updating) with a strong password kept in the macOS Keychain, or `keystore.properties` / `PITWALL_*` variables; the debug key is only a fallback with a warning.

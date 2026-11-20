@@ -75,4 +75,10 @@
     <string name="self_update_confirm">Confirmați solicitarea de instalare de pe televizor. Pitwall Updater se redeschide după actualizare.</string>
     <string name="self_update_no_apk">Această versiune nu are un APK pentru acest dispozitiv. Descărcați-l de la %1$s.</string>
     <string name="self_update_signature_conflict">Pitwall Updater instalat este semnat cu o altă cheie, deci noua versiune nu se poate instala peste el. Dezinstalați Pitwall Updater, apoi instalați noua versiune (setările se șterg; F1 TV nu este afectat).</string>
+    <string name="dialog_storage_label">Stocare TV:</string>
+    <string name="dialog_storage_value">%1$s liber / %2$s (%3$d%%)</string>
+    <string name="btn_auto_check">Auto-verificare: %1$s</string>
+    <string name="auto_check_off">Oprit</string>
+    <string name="auto_check_daily">Zilnic</string>
+    <string name="auto_check_weekly">Săptămânal</string>
 </resources>

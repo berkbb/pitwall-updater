@@ -1,5 +1,7 @@
 package com.berkbb.pitwall
 
+import java.util.Locale
+
 object LocaleHelper {
 
     val SUPPORTED_LANGUAGES = listOf("en", "tr", "ro")
@@ -8,7 +10,7 @@ object LocaleHelper {
         if (!savedLang.isNullOrBlank() && savedLang in SUPPORTED_LANGUAGES) {
             return savedLang
         }
-        val cleanSystem = systemLang?.lowercase() ?: "en"
+        val cleanSystem = systemLang?.lowercase(Locale.ROOT) ?: "en"
         return when (cleanSystem) {
             "tr" -> "tr"
             "ro" -> "ro"

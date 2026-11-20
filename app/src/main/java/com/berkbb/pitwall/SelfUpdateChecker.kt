@@ -1,13 +1,62 @@
 package com.berkbb.pitwall
 
+import android.os.Environment
+import android.os.StatFs
 import org.json.JSONObject
+import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Locale
+import kotlin.math.roundToInt
 
 const val SELF_REPO = "berkbb/pitwall-updater"
 const val SELF_RELEASE_API_URL = "https://api.github.com/repos/$SELF_REPO/releases/latest"
 const val SELF_RELEASES_PAGE = "github.com/$SELF_REPO/releases"
+
+/** How often Pitwall Updater quietly checks GitHub for a newer release at startup. */
+enum class UpdateCheckInterval(val labelRes: Int, val millis: Long) {
+    OFF(R.string.auto_check_off, 0L),
+    DAILY(R.string.auto_check_daily, 86_400_000L),
+    WEEKLY(R.string.auto_check_weekly, 7 * 86_400_000L);
+
+    fun next(): UpdateCheckInterval = entries[(ordinal + 1) % entries.size]
+
+    companion object {
+        fun fromName(raw: String?): UpdateCheckInterval = entries.firstOrNull { it.name == raw } ?: DAILY
+    }
+}
+
+/** Pure schedule check for optional startup self-update checks. */
+object UpdateSchedule {
+    fun shouldCheck(interval: UpdateCheckInterval, lastCheckedMs: Long, nowMs: Long): Boolean {
+        if (interval == UpdateCheckInterval.OFF) return false
+        if (lastCheckedMs <= 0L || nowMs < lastCheckedMs) return true
+        return nowMs - lastCheckedMs >= interval.millis
+    }
+}
+
+/** Available and total internal data storage on the TV (no permissions required). */
+data class StorageSummary(val freeBytes: Long, val totalBytes: Long)
+
+object StorageFormat {
+    fun formatBytes(bytes: Long, locale: Locale = Locale.ROOT): String {
+        val safe = bytes.coerceAtLeast(0L)
+        return if (safe < 1_000_000_000L) "${safe / 1_000_000L} MB"
+        else String.format(locale, "%.1f GB", safe / 1_000_000_000.0)
+    }
+
+    fun usedPercent(freeBytes: Long, totalBytes: Long): Int {
+        if (totalBytes <= 0L) return 0
+        val used = (totalBytes - freeBytes).coerceIn(0L, totalBytes)
+        return ((used * 100.0) / totalBytes).roundToInt().coerceIn(0, 100)
+    }
+}
+
+fun readDeviceStorage(): StorageSummary? = runCatching {
+    val stat = StatFs(Environment.getDataDirectory().path)
+    StorageSummary(freeBytes = stat.availableBytes, totalBytes = stat.totalBytes)
+}.getOrNull()
 
 /** Result of checking Pitwall Updater's own GitHub releases (not F1 TV's). */
 sealed interface SelfUpdateStatus {
@@ -31,6 +80,16 @@ sealed interface SelfInstallState {
 }
 
 object SelfUpdateChecker {
+
+    /** Removes downloaded Pitwall Updater APKs (never touching F1 TV .apkm bundles). */
+    fun cleanCachedApks(cacheDir: File) {
+        cacheDir.listFiles()?.forEach { file ->
+            val name = file.name
+            if (file.isFile && name.startsWith("pitwall-updater-") && (name.endsWith(".apk") || name.endsWith(".apk.part"))) {
+                file.delete()
+            }
+        }
+    }
 
     /** Blocking; call off the main thread. */
     fun check(currentVersion: String): SelfUpdateStatus {

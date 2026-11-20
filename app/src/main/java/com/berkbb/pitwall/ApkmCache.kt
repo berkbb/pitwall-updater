@@ -2,6 +2,7 @@ package com.berkbb.pitwall
 
 import java.io.File
 import java.security.MessageDigest
+import java.util.Locale
 
 /**
  * Tag-bound download cache for .apkm bundles. A cached file is only reused when it matches
@@ -23,7 +24,7 @@ object ApkmCache {
                 digest.update(buffer, 0, read)
             }
         }
-        return digest.digest().joinToString("") { "%02x".format(it) }
+        return digest.digest().joinToString("") { String.format(Locale.ROOT, "%02x", it) }
     }
 
     fun isValid(file: File, release: ReleaseInfo): Boolean {

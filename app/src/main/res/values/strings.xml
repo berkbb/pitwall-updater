@@ -75,4 +75,10 @@
     <string name="self_update_confirm">Confirm the installation prompt on the TV. Pitwall Updater reopens after the update.</string>
     <string name="self_update_no_apk">This release has no APK for this device. Download it from %1$s.</string>
     <string name="self_update_signature_conflict">The installed Pitwall Updater is signed with a different key, so the new version cannot install over it. Uninstall Pitwall Updater, then install the new version (its settings are removed; F1 TV is not affected).</string>
+    <string name="dialog_storage_label">TV Storage:</string>
+    <string name="dialog_storage_value">%1$s free / %2$s (%3$d%%)</string>
+    <string name="btn_auto_check">Auto-check: %1$s</string>
+    <string name="auto_check_off">Off</string>
+    <string name="auto_check_daily">Daily</string>
+    <string name="auto_check_weekly">Weekly</string>
 </resources>

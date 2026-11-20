@@ -1,6 +1,7 @@
 package com.berkbb.pitwall
 
 import org.json.JSONArray
+import java.util.Locale
 
 const val F1TV_PACKAGE_NAME = "com.formulaone.production"
 const val UPSTREAM_REPO = "Alexvbp/f1tv-4k-patch"
@@ -64,7 +65,7 @@ object ReleaseResolver {
 
     /** Normalizes a GitHub asset digest ("sha256:abc…") into a lowercase hex string, or null. */
     fun parseSha256(digest: String?): String? {
-        val value = digest?.trim()?.lowercase() ?: return null
+        val value = digest?.trim()?.lowercase(Locale.ROOT) ?: return null
         val hex = value.removePrefix("sha256:")
         return if (value.startsWith("sha256:") && hex.length == 64 && hex.all { it in "0123456789abcdef" }) hex else null
     }

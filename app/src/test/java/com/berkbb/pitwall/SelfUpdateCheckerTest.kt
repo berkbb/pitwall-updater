@@ -1,7 +1,12 @@
 package com.berkbb.pitwall
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
+import java.util.Locale
+import kotlin.io.path.createTempDirectory
 
 class SelfUpdateCheckerTest {
 
@@ -59,5 +64,41 @@ class SelfUpdateCheckerTest {
     @Test
     fun missingTagIsUnavailable() {
         assertEquals(SelfUpdateStatus.Unavailable, SelfUpdateChecker.statusFor("", "1.0.7"))
+    }
+
+    @Test
+    fun updateScheduleAndCacheCleanupWorkAsExpected() {
+        val now = 1_700_000_000_000L
+        assertFalse(UpdateSchedule.shouldCheck(UpdateCheckInterval.OFF, 0L, now))
+        assertTrue(UpdateSchedule.shouldCheck(UpdateCheckInterval.DAILY, 0L, now))
+        assertFalse(UpdateSchedule.shouldCheck(UpdateCheckInterval.DAILY, now - 1_000L, now))
+        assertTrue(UpdateSchedule.shouldCheck(UpdateCheckInterval.DAILY, now - UpdateCheckInterval.DAILY.millis, now))
+        assertFalse(UpdateSchedule.shouldCheck(UpdateCheckInterval.WEEKLY, now - UpdateCheckInterval.DAILY.millis, now))
+        assertTrue(UpdateSchedule.shouldCheck(UpdateCheckInterval.WEEKLY, now - UpdateCheckInterval.WEEKLY.millis, now))
+        assertEquals(UpdateCheckInterval.WEEKLY, UpdateCheckInterval.DAILY.next())
+        assertEquals(UpdateCheckInterval.OFF, UpdateCheckInterval.WEEKLY.next())
+        assertEquals(UpdateCheckInterval.DAILY, UpdateCheckInterval.fromName("invalid"))
+
+        val dir = createTempDirectory("pitwall-apk-clean").toFile()
+        try {
+            val selfApk = File(dir, "pitwall-updater-v1.0.11.apk").apply { writeText("a") }
+            val selfPart = File(dir, "pitwall-updater-v1.0.11.apk.part").apply { writeText("b") }
+            val bundle = File(dir, "f1tv_v3.apkm").apply { writeText("c") }
+            SelfUpdateChecker.cleanCachedApks(dir)
+            assertFalse(selfApk.exists())
+            assertFalse(selfPart.exists())
+            assertTrue(bundle.exists())
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun storageFormatFormatsUnitsAndUsedPercent() {
+        assertEquals("0 MB", StorageFormat.formatBytes(0L, Locale.ROOT))
+        assertEquals("500 MB", StorageFormat.formatBytes(500_000_000L, Locale.ROOT))
+        assertEquals("4.5 GB", StorageFormat.formatBytes(4_500_000_000L, Locale.ROOT))
+        assertEquals(75, StorageFormat.usedPercent(2_500_000_000L, 10_000_000_000L))
+        assertEquals(0, StorageFormat.usedPercent(0L, 0L))
     }
 }

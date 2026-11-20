@@ -131,6 +131,16 @@ fun PitwallScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundDark)
+            .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown && !showInfoDialog) {
+                    val code = event.nativeKeyEvent.keyCode
+                    if (code == android.view.KeyEvent.KEYCODE_MENU || code == android.view.KeyEvent.KEYCODE_INFO) {
+                        showInfoDialog = true
+                        return@onPreviewKeyEvent true
+                    }
+                }
+                false
+            }
             .padding(48.dp)
     ) {
         Column(
@@ -161,7 +171,7 @@ fun PitwallScreen(
                         )
                     }
                     Spacer(modifier = Modifier.height(4.dp))
-                    val manufacturer = android.os.Build.MANUFACTURER.replaceFirstChar { it.uppercase() }
+                    val manufacturer = android.os.Build.MANUFACTURER.replaceFirstChar { it.uppercase(Locale.ROOT) }
                     val model = android.os.Build.MODEL
                     val product = android.os.Build.PRODUCT
                     val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "arm"
@@ -338,6 +348,8 @@ fun PitwallScreen(
                 selfUpdate = uiState.selfUpdate,
                 selfUpdateResult = uiState.selfUpdateResult,
                 selfInstall = uiState.selfInstall,
+                autoCheckInterval = uiState.autoCheckInterval,
+                onCycleAutoCheck = { viewModel.cycleAutoCheckInterval() },
                 onCheckSelfUpdate = { viewModel.checkSelfUpdate() },
                 onInstallSelfUpdate = { viewModel.installSelfUpdate() },
                 onDismissSelfUpdateResult = { viewModel.dismissSelfUpdateResult() },
@@ -357,6 +369,8 @@ fun AboutWindow(
     selfUpdate: SelfUpdateStatus,
     selfUpdateResult: SelfUpdateStatus?,
     selfInstall: SelfInstallState,
+    autoCheckInterval: UpdateCheckInterval,
+    onCycleAutoCheck: () -> Unit,
     onCheckSelfUpdate: () -> Unit,
     onInstallSelfUpdate: () -> Unit,
     onDismissSelfUpdateResult: () -> Unit,
@@ -364,6 +378,8 @@ fun AboutWindow(
 ) {
     val closeFocusRequester = remember { FocusRequester() }
     var showLicenseDialog by remember { mutableStateOf(false) }
+    val storage = remember { readDeviceStorage() }
+    val displayLocale = LocalConfiguration.current.locales[0] ?: Locale.ROOT
 
     Dialog(
         onDismissRequest = onClose,
@@ -376,7 +392,7 @@ fun AboutWindow(
             modifier = Modifier
                 .fillMaxSize()
                 .background(BackgroundDark)
-                .padding(horizontal = 48.dp, vertical = 32.dp)
+                .padding(horizontal = 48.dp, vertical = 28.dp)
         ) {
             // Title bar
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -401,46 +417,46 @@ fun AboutWindow(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     InfoCard(
                         title = stringResource(R.string.dialog_developer_label).trimEnd(':'),
                         value = stringResource(R.string.dialog_developer_name),
-                        height = 96.dp,
+                        height = 88.dp,
                         modifier = Modifier.weight(1f)
                     )
                     InfoCard(
                         title = stringResource(R.string.dialog_website_label).trimEnd(':'),
                         value = stringResource(R.string.dialog_website_url),
                         valueColor = Color(0xFF64B5F6),
-                        height = 96.dp,
+                        height = 88.dp,
                         modifier = Modifier.weight(1f)
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     InfoCard(
                         title = stringResource(R.string.dialog_license_label).trimEnd(':'),
                         value = stringResource(R.string.dialog_license_name),
                         valueColor = Color(0xFF81C784),
-                        height = 96.dp,
+                        height = 88.dp,
                         modifier = Modifier.weight(1f)
                     )
                     InfoCard(
                         title = stringResource(R.string.dialog_patch_label).trimEnd(':'),
                         value = stringResource(R.string.dialog_patch_author),
-                        height = 96.dp,
+                        height = 88.dp,
                         modifier = Modifier.weight(1f)
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                    val manufacturer = android.os.Build.MANUFACTURER.replaceFirstChar { it.uppercase() }
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    val manufacturer = android.os.Build.MANUFACTURER.replaceFirstChar { it.uppercase(Locale.ROOT) }
                     val model = android.os.Build.MODEL
                     val product = android.os.Build.PRODUCT
                     val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "arm"
@@ -448,34 +464,55 @@ fun AboutWindow(
                         title = stringResource(R.string.dialog_version_label).trimEnd(':'),
                         value = "v${BuildConfig.VERSION_NAME}",
                         valueColor = Color(0xFFB39DDB),
-                        height = 96.dp,
+                        height = 88.dp,
                         modifier = Modifier.weight(1f)
                     )
+                    if (storage != null) {
+                        InfoCard(
+                            title = stringResource(R.string.dialog_storage_label).trimEnd(':'),
+                            value = stringResource(
+                                R.string.dialog_storage_value,
+                                StorageFormat.formatBytes(storage.freeBytes, displayLocale),
+                                StorageFormat.formatBytes(storage.totalBytes, displayLocale),
+                                StorageFormat.usedPercent(storage.freeBytes, storage.totalBytes)
+                            ),
+                            height = 88.dp,
+                            modifier = Modifier.weight(1.3f)
+                        )
+                    }
                     InfoCard(
                         title = stringResource(R.string.dialog_device_label).trimEnd(':'),
                         value = stringResource(R.string.header_subtitle, manufacturer, model, product, abi),
-                        height = 96.dp,
-                        modifier = Modifier.weight(2f)
+                        height = 88.dp,
+                        modifier = Modifier.weight(1.7f)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Disclaimer beside the Action buttons
+            Text(
+                text = stringResource(R.string.dialog_disclaimer),
+                fontSize = 13.sp,
+                lineHeight = 18.sp,
+                color = TextGray,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = stringResource(R.string.dialog_disclaimer),
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp,
-                    color = TextGray,
-                    modifier = Modifier.weight(1f)
-                )
                 val checkingSelf = selfUpdate is SelfUpdateStatus.Checking
+                TvActionButton(
+                    text = stringResource(R.string.btn_auto_check, stringResource(autoCheckInterval.labelRes)),
+                    backgroundColor = CardDark,
+                    focusedBorderColor = Color(0xFFE0E0E0),
+                    onClick = onCycleAutoCheck
+                )
                 TvActionButton(
                     text = stringResource(if (checkingSelf) R.string.btn_checking_app_updates else R.string.btn_check_app_updates),
                     backgroundColor = CardDark,

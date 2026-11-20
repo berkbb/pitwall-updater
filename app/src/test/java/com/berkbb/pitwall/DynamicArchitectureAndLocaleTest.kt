@@ -5,6 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.Locale
 
 class DynamicArchitectureAndLocaleTest {
 
@@ -41,6 +42,19 @@ class DynamicArchitectureAndLocaleTest {
         assertEquals("ro", LocaleHelper.getNextLanguage("tr"))
         assertEquals("en", LocaleHelper.getNextLanguage("ro"))
         assertEquals("en", LocaleHelper.getNextLanguage("unknown"))
+    }
+
+    @Test
+    fun testLocaleResolutionIsIndependentOfTurkishDefaultLocale() {
+        val original = Locale.getDefault()
+        Locale.setDefault(Locale.forLanguageTag("tr-TR"))
+        try {
+            assertEquals("en", LocaleHelper.resolveInitialLanguage(null, "INTEL"))
+            assertEquals("tr", LocaleHelper.resolveInitialLanguage(null, "TR"))
+            assertEquals("ro", LocaleHelper.resolveInitialLanguage(null, "RO"))
+        } finally {
+            Locale.setDefault(original)
+        }
     }
 
     // ==========================================
